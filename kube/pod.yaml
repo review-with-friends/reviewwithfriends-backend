@@ -1,0 +1,21 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: mob-app
+  labels:
+    app: mob
+spec:
+  containers:
+    - name: backend
+      image: registry.digitalocean.com/mob/backend:latest
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mob-backend
+spec:
+  selector:
+    app: mob
+  ports:
+    - port: 8000

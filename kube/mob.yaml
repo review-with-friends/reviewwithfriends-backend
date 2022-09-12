@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mob
+spec:
+  containers:
+    - name: backend
+      image: registry.digitalocean.com/mob/backend:latest
+      ports:
+        - containerPort: 8000
