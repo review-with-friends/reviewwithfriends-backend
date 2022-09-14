@@ -11,7 +11,7 @@ tls = { certs = "/Users/colton/Development/mob-backend/mob.spacedoglabs.com.cer"
 
 [release]
 address = "0.0.0.0"
-port = 443
+port = 80
 workers = 2
 keep_alive = 5
 read_timeout = 5
