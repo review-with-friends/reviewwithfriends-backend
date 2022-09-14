@@ -6,8 +6,8 @@ WORKDIR /mob
 COPY ./target/release/mob-backend ./
 COPY ./Rocket.toml ./
 
-COPY ./mob.spacedoglabs.com.cer /
-COPY ./mob.spacedoglabs.com.pem /
+#COPY ./mob.spacedoglabs.com.cer /
+#COPY ./mob.spacedoglabs.com.pem /
 
 CMD ["/mob/mob-backend"]
 
