@@ -3,7 +3,7 @@ FROM ubuntu:20.04
 WORKDIR /mob
 
 # Copy our build
-COPY ./target/debug/mob-backend ./
+COPY ./target/release/mob-backend ./
 COPY ./Rocket.toml ./
 
 CMD ["/mob/mob-backend"]
