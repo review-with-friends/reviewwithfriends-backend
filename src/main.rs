@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate rocket;
 
-use std::env;
-
 use rocket::{http::Status, response::status};
 use rocket_db_pools::{mongodb, Connection, Database};
 
@@ -12,12 +10,7 @@ struct MongoDBClient(mongodb::Client);
 
 #[launch]
 async fn rocket() -> _ {
-    println!("wow");
-    let name = "ROCKET_DATABASES";
-    match env::var(name) {
-        Ok(v) => println!("{}: {}", name, v),
-        Err(e) => panic!("${} is not set ({})", name, e),
-    }
+    println!("Mob has started.");
 
     rocket::build()
         .attach(MongoDBClient::init())
