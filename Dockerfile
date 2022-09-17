@@ -1,13 +1,14 @@
 FROM debian:buster-slim
 
+ARG MONGO_DB
+
 WORKDIR /mob
 
 # Copy our build
 COPY ./target/release/mob-backend ./
 COPY ./Rocket.toml ./
 
-#COPY ./mob.spacedoglabs.com.cer /
-#COPY ./mob.spacedoglabs.com.pem /
+ENV ROCKET_DATABASES=$MONGO_DB
 
 CMD ["/mob/mob-backend"]
 
