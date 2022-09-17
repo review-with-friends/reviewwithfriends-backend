@@ -13,6 +13,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+      - name: toml editor
+        uses: ciiiii/toml-editor@1.0.0
+        with:
+          # The relative path of toml file
+          file: Rocket.toml
+          key: release.databases.mob.url
+          value: ${{ secrets.MONGO_DB }}
       - name: Build
         run: cargo build
       - name: Build image
