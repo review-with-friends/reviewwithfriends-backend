@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Build
-        run: cargo build --debug
+        run: cargo build
       - name: Build image
         run: docker build -t registry.digitalocean.com/mob/backend:latest --build-arg MONGO_DB=${{ secrets.MONGO_DB }} .
       - name: Install doctl
