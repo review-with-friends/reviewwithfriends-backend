@@ -21,7 +21,7 @@ jobs:
           key: release.databases.mob.url
           value: ${{ secrets.MONGO_DB }}
       - name: Build
-        run: cargo build
+        run: cargo build --release
       - name: Build image
         run: docker build -t registry.digitalocean.com/mob/backend:latest .
       - name: Install doctl
