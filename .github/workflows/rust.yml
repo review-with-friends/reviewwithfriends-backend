@@ -17,9 +17,9 @@ jobs:
         uses: ciiiii/toml-editor@1.0.0
         with:
           # The relative path of toml file
-          file: Rocket.toml
-          key: release.databases.mob.url
-          value: ${{ secrets.MONGO_DB }}
+          file: "Rocket.toml"
+          key: "release.databases.mob.url"
+          value: "${{ secrets.MONGO_DB }}"
       - name: Build
         run: cargo build --release
       - name: Build image
