@@ -14,10 +14,10 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: toml editor
-        uses: ciiiii/toml-editor@1.0.0
+        uses: colathro/toml-editor@1.0.7
         with:
           # The relative path of toml file
-          file: "Rocket.toml"
+          file: "./Rocket.toml"
           key: "release.databases.mob.url"
           value: "${{ secrets.MONGO_DB }}"
       - name: Build
