@@ -5,7 +5,7 @@ ARG MONGO_DB
 WORKDIR /mob
 
 # Copy our build
-COPY ./target/release/mob-backend ./
+COPY ./target/debug/mob-backend ./
 COPY ./Rocket.toml ./
 
 ENV ROCKET_DATABASES=$MONGO_DB
