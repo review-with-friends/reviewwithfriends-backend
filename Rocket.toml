@@ -9,7 +9,7 @@ log = "critical"
 limits = { forms = 32768 }
 
 [debug.databases.mob]
-url = "mongodb://localhost:27017/"
+url = "mysql://root:test123@localhost:50144/mob"
 
 [release]
 address = "0.0.0.0"
