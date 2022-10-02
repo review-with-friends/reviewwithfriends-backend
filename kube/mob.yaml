@@ -1,10 +1,39 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: mob
+  name: mob-deployment
+  labels:
+    app: mob
 spec:
-  containers:
-    - name: backend
-      image: registry.digitalocean.com/mob/backend:latest
-      ports:
-        - containerPort: 8000
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mob
+  template:
+    metadata:
+      labels:
+        app: mob
+    spec:
+      containers:
+        - name: backend
+          image: registry.digitalocean.com/mob/backend:latest
+          ports:
+            - containerPort: 80
+
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mob-loadbalancer
+  annotations:
+    service.beta.kubernetes.io/do-loadbalancer-protocol: "https"
+    service.beta.kubernetes.io/do-loadbalancer-certificate-id: "c86fb29b-83a3-43c5-9238-5be410527a1f"
+spec:
+  type: LoadBalancer
+  selector:
+    app: mob
+  ports:
+    - name: https
+      protocol: TCP
+      port: 443
+      targetPort: 80

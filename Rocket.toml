@@ -7,9 +7,10 @@ read_timeout = 5
 write_timeout = 5
 log = "critical"
 limits = { forms = 32768 }
+twilio = ""
 
 [debug.databases.mob]
-url = "mysql://root:test123@localhost:50144/mob"
+url = "mysql://root:test123@localhost:50663/mob"
 
 [release]
 address = "0.0.0.0"
@@ -20,6 +21,7 @@ read_timeout = 5
 write_timeout = 5
 log = "critical"
 limits = { forms = 32768 }
+twilio = ""
 
 [release.databases.mob]
 url = ""

@@ -13,12 +13,17 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: toml editor
+      - name: Rocket TOML Mob DB
         uses: colathro/toml-editor@1.0.7
         with:
-          # The relative path of toml file
           file: "./Rocket.toml"
           key: "release.databases.mob.url"
+          value: "${{ secrets.MONGO_DB }}"
+      - name: Rocket TOML Twilio
+        uses: colathro/toml-editor@1.0.7
+        with:
+          file: "./Rocket.toml"
+          key: "release.twilio"
           value: "${{ secrets.MONGO_DB }}"
       - name: Build
         run: cargo build --release
