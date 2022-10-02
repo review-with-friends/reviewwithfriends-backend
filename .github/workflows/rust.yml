@@ -24,7 +24,7 @@ jobs:
         with:
           file: "./Rocket.toml"
           key: "release.twilio"
-          value: "${{ secrets.MONGO_DB }}"
+          value: "${{ secrets.TWILIO_KEY }}"
       - name: Build
         run: cargo build --release
       - name: Build image
