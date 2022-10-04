@@ -25,6 +25,12 @@ jobs:
           file: "./Rocket.toml"
           key: "release.twilio"
           value: "${{ secrets.TWILIO_KEY }}"
+      - name: Rocket TOML JWT SECRET
+        uses: colathro/toml-editor@1.0.7
+        with:
+          file: "./Rocket.toml"
+          key: "release.jwt_secret"
+          value: "${{ secrets.JWT_SECRET }}"
       - name: Build
         run: cargo build --release
       - name: Build image
