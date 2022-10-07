@@ -1,9 +1,5 @@
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
-use rocket::http::Status;
-use rocket::request::FromRequest;
-use rocket::request::Outcome;
-use rocket::Request;
 use serde::{Deserialize, Serialize};
 
 pub struct SigningKeys(pub EncodingKey, pub DecodingKey);
@@ -38,31 +34,5 @@ pub fn validate_jwt(keys: &SigningKeys, token: &str) -> Option<String> {
     match decode::<Claims>(&token, &keys.1, &Validation::default()) {
         Ok(t) => Some(t.claims.sub),
         Err(_) => None,
-    }
-}
-
-pub struct JWTAuthorized(pub String);
-
-#[derive(Debug)]
-pub enum JWTError {
-    Invalid,
-}
-
-/// When JWTAuthorized is on the route, this guard will fire and ensure authorization is passed.
-#[async_trait]
-impl<'r> FromRequest<'r> for JWTAuthorized {
-    type Error = JWTError;
-
-    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let jwt = request.headers().get_one("Authorization").unwrap_or("");
-        let keys = request.rocket().state::<SigningKeys>().unwrap();
-        match validate_jwt(&keys, jwt) {
-            Some(id) => {
-                return Outcome::Success(JWTAuthorized(id));
-            }
-            None => {
-                return Outcome::Failure((Status::Unauthorized, JWTError::Invalid));
-            }
-        }
     }
 }

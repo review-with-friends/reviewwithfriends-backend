@@ -31,6 +31,8 @@ jobs:
           file: "./Rocket.toml"
           key: "release.jwt_secret"
           value: "${{ secrets.JWT_SECRET }}"
+      - name: Test Validation
+        run: cargo test -p validation
       - name: Build
         run: cargo build --release
       - name: Build image

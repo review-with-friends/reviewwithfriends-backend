@@ -869,6 +869,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "jwt"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "jsonwebtoken",
+ "serde",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -967,12 +976,13 @@ name = "mob-backend"
 version = "0.1.0"
 dependencies = [
  "chrono",
- "jsonwebtoken",
+ "jwt",
  "reqwest",
  "rocket",
  "rocket_db_pools",
  "serde",
  "sqlx 0.6.2",
+ "validation",
 ]
 
 [[package]]
@@ -1894,6 +1904,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "crossbeam-queue",
  "dotenvy",
@@ -2368,6 +2379,10 @@ dependencies = [
  "idna",
  "percent-encoding",
 ]
+
+[[package]]
+name = "validation"
+version = "0.1.0"
 
 [[package]]
 name = "valuable"

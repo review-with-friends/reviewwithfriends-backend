@@ -2,22 +2,27 @@
 extern crate rocket;
 
 use ::serde::Deserialize;
-use auth::JWTAuthorized;
+use jwt::{encode_jwt_secret, validate_jwt, SigningKeys};
 use reqwest::ClientBuilder;
-use rocket::{fairing::AdHoc, http::Status, response::status, State};
+use rocket::{
+    fairing::AdHoc,
+    http::Status,
+    request::{FromRequest, Outcome},
+    response::status,
+    Request, State,
+};
 use rocket_db_pools::{
     sqlx::{self, Row},
     Connection, Database,
 };
 use std::{collections::HashMap, time::Duration};
 
-use crate::auth::{encode_jwt_secret, initiate_phone_auth};
-
-mod auth;
+mod auth_routes;
+mod db;
 
 #[derive(Database)]
 #[database("mob")]
-struct DBClient(sqlx::MySqlPool);
+pub struct DBClient(sqlx::MySqlPool);
 
 #[derive(Deserialize)]
 struct Config {
@@ -44,7 +49,10 @@ async fn rocket() -> _ {
             "/api/test",
             routes![hello_world, phone_auth, auth_hello_world],
         )
-        .mount("/auth", routes![initiate_phone_auth])
+        .mount(
+            "/auth",
+            routes![auth_routes::request_code, auth_routes::sign_in],
+        )
 }
 
 #[get("/helloworld")]
@@ -106,4 +114,31 @@ async fn phone_auth(
         .await
         .unwrap();
     return status::Custom(Status::Ok, String::from(response.text().await.unwrap()));
+}
+
+#[derive(Debug)]
+pub enum JWTError {
+    Invalid,
+}
+
+pub struct JWTAuthorized(pub String);
+
+/// When JWTAuthorized is on the route, this guard will fire and ensure authorization is passed.
+/// JWTAuthorized contains the users id for fetching information and validation relationships.
+#[async_trait]
+impl<'r> FromRequest<'r> for JWTAuthorized {
+    type Error = JWTError;
+
+    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        let jwt = request.headers().get_one("Authorization").unwrap_or("");
+        let keys = request.rocket().state::<SigningKeys>().unwrap();
+        match validate_jwt(&keys, jwt) {
+            Some(id) => {
+                return Outcome::Success(JWTAuthorized(id));
+            }
+            None => {
+                return Outcome::Failure((Status::Unauthorized, JWTError::Invalid));
+            }
+        }
+    }
 }
