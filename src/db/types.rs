@@ -19,8 +19,8 @@ pub struct User {
     pub created: NaiveDateTime,
 }
 
-impl From<MySqlRow> for User {
-    fn from(row: MySqlRow) -> User {
+impl From<&MySqlRow> for User {
+    fn from(row: &MySqlRow) -> User {
         User {
             id: row.get("id"),
             name: row.get("name"),
@@ -52,6 +52,19 @@ pub struct PhoneAuth {
     pub used: bool,
 }
 
+impl From<&MySqlRow> for PhoneAuth {
+    fn from(row: &MySqlRow) -> PhoneAuth {
+        PhoneAuth {
+            id: row.get("id"),
+            phone: row.get("phone"),
+            created: row.get("created"),
+            ip: row.get("ip"),
+            code: row.get("code"),
+            used: row.get("used"),
+        }
+    }
+}
+
 /// Represents an attempt to use a code provided by phone auth.
 pub struct AuthAttempt {
     /// Guid unique identifier.
@@ -62,4 +75,14 @@ pub struct AuthAttempt {
 
     /// Datetime the request was made.
     pub created: NaiveDateTime,
+}
+
+impl From<&MySqlRow> for AuthAttempt {
+    fn from(row: &MySqlRow) -> AuthAttempt {
+        AuthAttempt {
+            id: row.get("id"),
+            phone: row.get("phone"),
+            created: row.get("created"),
+        }
+    }
 }

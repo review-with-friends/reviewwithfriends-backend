@@ -927,11 +927,13 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "jwt",
+ "rand",
  "reqwest",
  "rocket",
  "rocket_db_pools",
  "serde",
  "sqlx",
+ "uuid",
  "validation",
 ]
 
@@ -2225,6 +2227,15 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+]
+
+[[package]]
+name = "uuid"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "683f0a095f6dcf74520a5f17a12452ae6f970abbd2443299a1e226fd38195f2b"
+dependencies = [
+ "getrandom",
 ]
 
 [[package]]

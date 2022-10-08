@@ -1,5 +1,5 @@
 use crate::{
-    db::{get_user, query::DBClient},
+    db::{get_user, DBClient},
     JWTAuthorized,
 };
 use rocket::{http::Status, response::status};
