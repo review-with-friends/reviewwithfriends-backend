@@ -2,6 +2,7 @@
 extern crate rocket;
 
 use ::serde::Deserialize;
+use db::query::DBClient;
 use jwt::{encode_jwt_secret, validate_jwt, SigningKeys};
 use reqwest::ClientBuilder;
 use rocket::{
@@ -19,10 +20,7 @@ use std::{collections::HashMap, time::Duration};
 
 mod auth_routes;
 mod db;
-
-#[derive(Database)]
-#[database("mob")]
-pub struct DBClient(sqlx::MySqlPool);
+mod test_routes;
 
 #[derive(Deserialize)]
 struct Config {
@@ -47,47 +45,16 @@ async fn rocket() -> _ {
         .manage(signing_keys)
         .mount(
             "/api/test",
-            routes![hello_world, phone_auth, auth_hello_world],
+            routes![
+                test_routes::hello_world,
+                phone_auth,
+                test_routes::auth_hello_world
+            ],
         )
         .mount(
             "/auth",
             routes![auth_routes::request_code, auth_routes::sign_in],
         )
-}
-
-#[get("/helloworld")]
-async fn hello_world(mut client: Connection<DBClient>) -> status::Custom<String> {
-    let query_resp: Option<String> = sqlx::query("SELECT * FROM users")
-        .fetch_one(&mut *client)
-        .await
-        .and_then(|r| Ok(r.try_get("name")?))
-        .ok();
-
-    match query_resp {
-        Some(resp) => {
-            return status::Custom(Status::Ok, String::from(resp));
-        }
-        None => status::Custom(Status::Ok, String::from("Everything is BAD!")),
-    }
-}
-
-#[get("/auth_helloworld")]
-async fn auth_hello_world(
-    _auth: JWTAuthorized,
-    mut client: Connection<DBClient>,
-) -> status::Custom<String> {
-    let query_resp: Option<String> = sqlx::query("SELECT * FROM users")
-        .fetch_one(&mut *client)
-        .await
-        .and_then(|r| Ok(r.try_get("name")?))
-        .ok();
-
-    match query_resp {
-        Some(resp) => {
-            return status::Custom(Status::Ok, String::from(resp));
-        }
-        None => status::Custom(Status::Ok, String::from("Everything is BAD!")),
-    }
 }
 
 #[get("/phoneauth")]

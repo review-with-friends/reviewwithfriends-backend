@@ -1,4 +1,5 @@
-use chrono::{DateTime, Utc};
+use rocket_db_pools::sqlx::{mysql::MySqlRow, Row};
+use sqlx::types::chrono::NaiveDateTime;
 
 /// A unique user in the application.
 pub struct User {
@@ -15,7 +16,19 @@ pub struct User {
     pub phone: String,
 
     /// Datetime the user was created.
-    pub created: DateTime<Utc>,
+    pub created: NaiveDateTime,
+}
+
+impl From<MySqlRow> for User {
+    fn from(row: MySqlRow) -> User {
+        User {
+            id: row.get("id"),
+            name: row.get("name"),
+            display_name: row.get("display_name"),
+            phone: row.get("phone"),
+            created: row.get("created"),
+        }
+    }
 }
 
 /// Represents a specific phone authentication attempt.
@@ -27,7 +40,7 @@ pub struct PhoneAuth {
     pub phone: String,
 
     /// Datetime in UTC the PhoneAuth attempt was started.
-    pub created: DateTime<Utc>,
+    pub created: NaiveDateTime,
 
     /// IP address the request was sent from.
     pub ip: String,
@@ -48,5 +61,5 @@ pub struct AuthAttempt {
     pub phone: String,
 
     /// Datetime the request was made.
-    pub created: DateTime<Utc>,
+    pub created: NaiveDateTime,
 }

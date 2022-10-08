@@ -8,7 +8,7 @@ validation = { path = "./lib/validation" }
 jwt = { path = "./lib/jwt" }
 rocket = { version = "0.5.0-rc.2", features = ["json", "tls"] }
 rocket_db_pools = { version = "0.1.0-rc.2", features = ["sqlx_mysql"] }
-sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "chrono"] }
+sqlx = { version = "0.5.0", features = ["runtime-tokio-rustls", "chrono"] }
 serde = "1.0.137"
 reqwest =  { version = "0.11.12", default-features = false, features = ["rustls-tls"] }
 chrono = "0.4.19"
