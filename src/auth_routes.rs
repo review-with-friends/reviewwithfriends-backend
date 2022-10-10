@@ -1,14 +1,18 @@
 use std::{collections::HashMap, time::Duration};
 
 use crate::{
-    db::{create_phoneauth, create_user, get_current_phoneauths, get_user_by_phone, User},
+    db::{
+        create_authattempt, create_phoneauth, create_user, get_current_phoneauths,
+        get_phoneauth_attempts, get_user_by_phone, update_authattempt_used, AuthAttempt, PhoneAuth,
+        User,
+    },
     Config, DBClient,
 };
 use chrono::Utc;
+use jwt::{mint_jwt, SigningKeys};
 use rand::Rng;
 use reqwest::ClientBuilder;
 use rocket::State;
-use rocket_db_pools::Connection;
 use uuid::Uuid;
 use validation;
 
@@ -71,10 +75,68 @@ pub async fn request_code(
     Ok(())
 }
 
-#[post("/signin?<code>")]
-pub async fn sign_in(mut client: Connection<DBClient>, code: &str) -> Result<(), String> {
+#[post("/signin?<code>&<phone>")]
+pub async fn sign_in(
+    signing_keys: &State<SigningKeys>,
+    client: &DBClient,
+    code: &str,
+    phone: &str,
+) -> Result<String, String> {
     validation::validate_code(code)?;
-    Ok(())
+    validation::validate_phone(phone)?;
+
+    let create_authattempt_res = create_authattempt(client, phone, code).await;
+    if let Err(_) = create_authattempt_res {
+        return Err("unable to start auth attempt".to_string());
+    }
+
+    let phone_auth_attemps_res = get_phoneauth_attempts(client, phone.to_string()).await;
+    if let Ok(phone_auth_attempts) = phone_auth_attemps_res {
+        if phone_auth_attempts.len() >= 4 {
+            return Err("too many auth attempts".to_string());
+        }
+    } else {
+        return Err("unable to fetch auth attempts".to_string());
+    }
+
+    let phone_auth_res = get_current_phoneauths(client, phone.to_string()).await;
+    let phone_auths: Vec<PhoneAuth>;
+    if let Ok(phone_auths_tmp) = phone_auth_res {
+        phone_auths = phone_auths_tmp;
+    } else {
+        return Err("unable to fetch auths".to_string());
+    }
+
+    let matched_phoneauth = phone_auths
+        .iter()
+        .filter(|ar| ar.code == code)
+        .collect::<Vec<&PhoneAuth>>();
+
+    if matched_phoneauth.len() == 1 {
+        let user: User;
+        let user_res = get_user_by_phone(client, phone.to_string()).await;
+        if let Ok(user_opt) = user_res {
+            if let Some(user_tmp) = user_opt {
+                user = user_tmp;
+            } else {
+                return Err("unable to find user for phone number".to_string());
+            }
+        } else {
+            return Err("error fetching user by phone".to_string());
+        }
+
+        let authattempt_update_res =
+            update_authattempt_used(client, &matched_phoneauth.first().unwrap().id).await;
+        if let Err(_) = authattempt_update_res {
+            return Err("unable to update authattempt".to_string());
+        }
+
+        let jwt = mint_jwt(&signing_keys, &user.id);
+
+        Ok(jwt)
+    } else {
+        Err("invalid code".to_string())
+    }
 }
 
 async fn send_auth(twilio_secret: &String, phone: &str, code: &str) {
@@ -127,29 +189,3 @@ fn get_new_auth_code() -> String {
 
     return user_name;
 }
-
-/* #[get("/phoneauth")]
-async fn phone_auth(
-    mut _client: Connection<DBClient>,
-    config: &State<Config>,
-) -> status::Custom<String> {
-    let request_url = "https://api.twilio.com/2010-04-01/Accounts/AC0094c61aa39fc9c673130f6e28e43bad/Messages.json";
-
-    let timeout = Duration::new(5, 0);
-    let client = ClientBuilder::new().timeout(timeout).build().unwrap();
-
-    let mut params = HashMap::new();
-    params.insert("Body", "Hello from Twilio");
-    params.insert("From", "+17246134841");
-    params.insert("To", "+17014910059");
-
-    let response = client
-        .post(request_url)
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .form(&params)
-        .basic_auth("AC0094c61aa39fc9c673130f6e28e43bad", Some(&config.twilio))
-        .send()
-        .await
-        .unwrap();
-    return status::Custom(Status::Ok, String::from(response.text().await.unwrap()));
-} */

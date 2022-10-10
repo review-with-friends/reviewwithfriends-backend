@@ -35,3 +35,23 @@ pub async fn create_phoneauth(client: &DBClient, phone: &str, code: &str) -> Res
 
     return Ok(());
 }
+
+pub async fn update_authattempt_used(client: &DBClient, id: &str) -> Result<(), Error> {
+    sqlx::query("UPDATE phoneauth SET used = TRUE WHERE id = ?")
+        .bind(id)
+        .execute(&client.0)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn create_authattempt(client: &DBClient, phone: &str, code: &str) -> Result<(), Error> {
+    sqlx::query("INSERT INTO authattempt (id, phone, created) VALUES (?,?,?)")
+        .bind(Uuid::new_v4().to_string())
+        .bind(&phone)
+        .bind(Utc::now().naive_utc())
+        .execute(&client.0)
+        .await?;
+
+    return Ok(());
+}

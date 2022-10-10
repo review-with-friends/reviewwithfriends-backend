@@ -37,10 +37,7 @@ async fn rocket() -> _ {
         .attach(DBClient::init())
         .attach(AdHoc::config::<Config>())
         .manage(signing_keys)
-        .mount(
-            "/api/test",
-            routes![test_routes::hello_world, test_routes::auth_hello_world],
-        )
+        .mount("/api/test", routes![test_routes::auth_hello_world])
         .mount(
             "/auth",
             routes![auth_routes::request_code, auth_routes::sign_in],
