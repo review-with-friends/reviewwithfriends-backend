@@ -42,10 +42,7 @@ pub fn validate_code(code: &str) -> Result<(), String> {
 /// assert!(validation::validate_phone("").is_err())
 /// ```
 /// ```
-/// assert!(validation::validate_phone("+1 7014910059").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_phone("+44 445566").is_ok())
+/// assert!(validation::validate_phone("1 7014910059").is_ok())
 /// ```
 /// ```
 /// assert!(validation::validate_phone("44 445566").is_err())
@@ -60,12 +57,12 @@ pub fn validate_code(code: &str) -> Result<(), String> {
 /// assert!(validation::validate_phone("+44445434434").is_err())
 /// ```
 pub fn validate_phone(phone: &str) -> Result<(), String> {
-    if phone.len() < 8 {
+    if phone.len() != 12 {
         return Err("incorrect phone length".to_string());
     }
 
-    if phone.chars().next().unwrap() != '+' {
-        return Err("phone must start with country code".to_string());
+    if !phone.starts_with("1 ") {
+        return Err("unsupported country phone".to_string());
     }
 
     if phone.chars().filter(|&c| c == ' ').count() != 1 {

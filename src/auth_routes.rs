@@ -205,7 +205,7 @@ async fn send_auth(twilio_secret: &String, phone: &str, code: &str) {
     let mut params = HashMap::new();
     params.insert("Body", format!("{} is your Mob auth code!", code));
     params.insert("From", "+17246134841".to_string());
-    params.insert("To", clean_phone);
+    params.insert("To", format!("+{}", clean_phone));
 
     let response = client
         .post(request_url)
