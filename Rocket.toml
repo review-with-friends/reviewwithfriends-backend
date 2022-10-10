@@ -11,7 +11,7 @@ twilio = ""
 jwt_secret = "thisisatestkey"
 
 [debug.databases.mob]
-url = "mysql://root:test123@localhost:50663/mob"
+url = "mysql://root:test123@localhost:49492/mob"
 
 [release]
 address = "0.0.0.0"
