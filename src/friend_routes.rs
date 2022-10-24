@@ -155,11 +155,21 @@ pub async fn send_request(
     friend_id: String,
 ) -> Result<(), Custom<String>> {
     let exists_res = does_user_exist(client, friend_id.clone()).await;
-    if exists_res.is_err() {
-        return Err(Custom(
-            Status::BadRequest,
-            "no user exists with that id".to_string(),
-        ));
+    match exists_res {
+        Ok(exists) => {
+            if !exists {
+                return Err(Custom(
+                    Status::BadRequest,
+                    "no user exists with that id".to_string(),
+                ));
+            }
+        }
+        Err(_) => {
+            return Err(Custom(
+                Status::BadRequest,
+                "unable to get friend".to_string(),
+            ));
+        }
     }
 
     let existing_requests_res = get_outgoing_friend_requests(client, auth.0.clone()).await;
