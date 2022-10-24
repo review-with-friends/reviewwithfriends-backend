@@ -3,8 +3,7 @@ use std::{collections::HashMap, time::Duration};
 use crate::{
     db::{
         create_authattempt, create_phoneauth, create_user, get_current_phoneauths,
-        get_phoneauth_attempts, get_user_by_phone, update_authattempt_used, AuthAttempt, PhoneAuth,
-        User,
+        get_phoneauth_attempts, get_user_by_phone, update_authattempt_used, PhoneAuth, User,
     },
     Config, DBClient,
 };
@@ -119,7 +118,7 @@ pub async fn sign_in(
         return Err(Custom(Status::BadRequest, code_err.to_string()));
     }
 
-    let create_authattempt_res = create_authattempt(client, phone, code).await;
+    let create_authattempt_res = create_authattempt(client, phone).await;
     if let Err(_) = create_authattempt_res {
         return Err(Custom(
             Status::InternalServerError,

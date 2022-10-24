@@ -1,13 +1,8 @@
-use chrono::Duration;
-use rand::Rng;
-use rocket_db_pools::{
-    sqlx::{self, Error, Row},
-    Connection, Database,
-};
-use sqlx::types::chrono::{NaiveDateTime, Utc};
+use rocket_db_pools::sqlx::{self, Error};
+use sqlx::types::chrono::Utc;
 use uuid::Uuid;
 
-use super::{AuthAttempt, DBClient, PhoneAuth, User};
+use super::{DBClient, User};
 
 pub async fn create_user(client: &DBClient, user: &User) -> Result<(), Error> {
     sqlx::query("INSERT INTO user (id, name, display_name, phone, created) VALUES (?,?,?,?,?)")
@@ -45,11 +40,27 @@ pub async fn update_authattempt_used(client: &DBClient, id: &str) -> Result<(), 
     return Ok(());
 }
 
-pub async fn create_authattempt(client: &DBClient, phone: &str, code: &str) -> Result<(), Error> {
+pub async fn create_authattempt(client: &DBClient, phone: &str) -> Result<(), Error> {
     sqlx::query("INSERT INTO authattempt (id, phone, created) VALUES (?,?,?)")
         .bind(Uuid::new_v4().to_string())
         .bind(&phone)
         .bind(Utc::now().naive_utc())
+        .execute(&client.0)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn create_friend_request(
+    client: &DBClient,
+    user_id: &str,
+    friend_id: &str,
+) -> Result<(), Error> {
+    sqlx::query("INSERT INTO friendrequest (id, created, user_id, friend_id, ignored) VALUES (?,?,?,?,false)")
+        .bind(Uuid::new_v4().to_string())
+        .bind(Utc::now().naive_utc())
+        .bind(user_id)
+        .bind(friend_id)
         .execute(&client.0)
         .await?;
 

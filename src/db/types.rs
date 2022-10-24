@@ -86,3 +86,62 @@ impl From<&MySqlRow> for AuthAttempt {
         }
     }
 }
+
+/// Represents one direction of a friend relationship.
+/// In a logical friendship, two friend records exist
+/// with user_id and friend_id flipped.
+pub struct Friend {
+    /// Guid unique identifier.
+    pub id: String,
+
+    /// Datetime the request was made.
+    pub created: NaiveDateTime,
+
+    /// Primary user for the friendship.
+    pub user_id: String,
+
+    /// Secondary user for the friendship.
+    pub friend_id: String,
+}
+
+impl From<&MySqlRow> for Friend {
+    fn from(row: &MySqlRow) -> Friend {
+        Friend {
+            id: row.get("id"),
+            created: row.get("created"),
+            user_id: row.get("user_id"),
+            friend_id: row.get("friend_id"),
+        }
+    }
+}
+
+/// Represents a sent friend request.
+/// user_id is the sender
+pub struct FriendRequest {
+    /// Guid unique identifier.
+    pub id: String,
+
+    /// Datetime the request was made.
+    pub created: NaiveDateTime,
+
+    /// The sender of the friendship reqest.
+    pub user_id: String,
+
+    /// The receiver of the friendship request.
+    pub friend_id: String,
+
+    /// friend_id is able to mark this request as ignored.
+    pub ignored: bool,
+}
+
+impl From<&MySqlRow> for FriendRequest {
+    fn from(row: &MySqlRow) -> FriendRequest {
+        FriendRequest {
+            id: row.get("id"),
+            created: row.get("created"),
+            user_id: row.get("user_id"),
+            friend_id: row.get("friend_id"),
+            ignored: row.get("ignored"),
+        }
+    }
+}

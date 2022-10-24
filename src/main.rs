@@ -14,7 +14,7 @@ use rocket_db_pools::Database;
 
 mod auth_routes;
 mod db;
-mod test_routes;
+mod friend_routes;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -37,9 +37,18 @@ async fn rocket() -> _ {
         .attach(DBClient::init())
         .attach(AdHoc::config::<Config>())
         .manage(signing_keys)
-        .mount("/api/test", routes![test_routes::auth_hello_world])
         .mount(
-            "/auth",
+            "/api/v1/friends",
+            routes![
+                friend_routes::get_friends,
+                friend_routes::get_outgoing_requests,
+                friend_routes::get_incoming_requests,
+                friend_routes::get_incoming_ignored_requests,
+                friend_routes::send_request
+            ],
+        )
+        .mount(
+            "/auth/v1",
             routes![auth_routes::request_code, auth_routes::sign_in],
         )
 }
