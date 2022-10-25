@@ -44,7 +44,12 @@ async fn rocket() -> _ {
                 friend_routes::get_outgoing_requests,
                 friend_routes::get_incoming_requests,
                 friend_routes::get_incoming_ignored_requests,
-                friend_routes::send_request
+                friend_routes::send_request,
+                friend_routes::decline_request,
+                friend_routes::ignore_request,
+                friend_routes::cancel_request,
+                friend_routes::accept_request,
+                friend_routes::remove_friend
             ],
         )
         .mount(
