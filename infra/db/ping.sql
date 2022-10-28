@@ -1,0 +1,3 @@
+CREATE TABLE ping (  
+    id VARCHAR(36) NOT NULL PRIMARY KEY
+);

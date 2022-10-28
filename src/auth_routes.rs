@@ -45,7 +45,7 @@ pub async fn request_code(
         }
     }
 
-    let user_res = get_user_by_phone(client, phone.to_string()).await;
+    let user_res = get_user_by_phone(client, phone).await;
 
     let existing_user: User;
 
@@ -159,7 +159,7 @@ pub async fn sign_in(
 
     if matched_phoneauth.len() == 1 {
         let user: User;
-        let user_res = get_user_by_phone(client, phone.to_string()).await;
+        let user_res = get_user_by_phone(client, phone).await;
         if let Ok(user_opt) = user_res {
             if let Some(user_tmp) = user_opt {
                 user = user_tmp;

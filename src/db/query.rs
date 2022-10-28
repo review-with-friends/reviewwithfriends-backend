@@ -1,8 +1,17 @@
 use chrono::Duration;
 use rocket_db_pools::sqlx::{self, Error};
-use sqlx::types::chrono::Utc;
+use sqlx::{types::chrono::Utc, Row};
 
 use super::{AuthAttempt, DBClient, Friend, FriendRequest, PhoneAuth, User};
+
+pub async fn get_ping(client: &DBClient, id: &str) -> Result<String, Error> {
+    let row = sqlx::query("SELECT * FROM ping where id = ?")
+        .bind(id)
+        .fetch_one(&client.0)
+        .await?;
+
+    return Ok(row.try_get("id")?);
+}
 
 pub async fn get_user(client: &DBClient, id: String) -> Result<User, Error> {
     let row = sqlx::query("SELECT * FROM user where id = ?")
@@ -13,7 +22,7 @@ pub async fn get_user(client: &DBClient, id: String) -> Result<User, Error> {
     return Ok((&row).into());
 }
 
-pub async fn does_user_exist(client: &DBClient, id: String) -> Result<bool, Error> {
+pub async fn does_user_exist(client: &DBClient, id: &str) -> Result<bool, Error> {
     let row = sqlx::query("SELECT * FROM user where id = ?")
         .bind(id)
         .fetch_all(&client.0)
@@ -22,7 +31,7 @@ pub async fn does_user_exist(client: &DBClient, id: String) -> Result<bool, Erro
     return Ok(row.len() == 1);
 }
 
-pub async fn get_user_by_phone(client: &DBClient, phone: String) -> Result<Option<User>, Error> {
+pub async fn get_user_by_phone(client: &DBClient, phone: &str) -> Result<Option<User>, Error> {
     let rows = sqlx::query("SELECT * FROM user where phone = ?")
         .bind(phone)
         .fetch_all(&client.0)

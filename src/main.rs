@@ -8,13 +8,14 @@ use rocket::{
     fairing::AdHoc,
     http::Status,
     request::{FromRequest, Outcome},
-    Request,
+    route, Request,
 };
 use rocket_db_pools::Database;
 
 mod auth_routes;
 mod db;
 mod friend_routes;
+mod ping_routes;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -37,6 +38,7 @@ async fn rocket() -> _ {
         .attach(DBClient::init())
         .attach(AdHoc::config::<Config>())
         .manage(signing_keys)
+        .mount("/ping", routes![ping_routes::ping])
         .mount(
             "/api/v1/friends",
             routes![

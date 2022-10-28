@@ -162,7 +162,7 @@ pub async fn send_request(
         ));
     }
 
-    let exists_res = does_user_exist(client, friend_id.clone()).await;
+    let exists_res = does_user_exist(client, &friend_id).await;
     match exists_res {
         Ok(exists) => {
             if !exists {
