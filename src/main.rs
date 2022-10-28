@@ -8,7 +8,7 @@ use rocket::{
     fairing::AdHoc,
     http::Status,
     request::{FromRequest, Outcome},
-    route, Request,
+    Request,
 };
 use rocket_db_pools::Database;
 

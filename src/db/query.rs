@@ -13,14 +13,14 @@ pub async fn get_ping(client: &DBClient, id: &str) -> Result<String, Error> {
     return Ok(row.try_get("id")?);
 }
 
-pub async fn get_user(client: &DBClient, id: String) -> Result<User, Error> {
+/* pub async fn get_user(client: &DBClient, id: String) -> Result<User, Error> {
     let row = sqlx::query("SELECT * FROM user where id = ?")
         .bind(id)
         .fetch_one(&client.0)
         .await?;
 
     return Ok((&row).into());
-}
+} */
 
 pub async fn does_user_exist(client: &DBClient, id: &str) -> Result<bool, Error> {
     let row = sqlx::query("SELECT * FROM user where id = ?")
