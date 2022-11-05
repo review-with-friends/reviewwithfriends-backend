@@ -2,6 +2,7 @@ use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone)]
 pub struct SigningKeys(pub EncodingKey, pub DecodingKey);
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -29,7 +30,7 @@ pub fn encode_jwt_secret(jwt_secret: &str) -> SigningKeys {
     )
 }
 
-/// Returns true if `key` is a valid API key string.
+/// Returns 'string' sub claim if `token` is a valid
 pub fn validate_jwt(keys: &SigningKeys, token: &str) -> Option<String> {
     match decode::<Claims>(&token, &keys.1, &Validation::default()) {
         Ok(t) => Some(t.claims.sub),

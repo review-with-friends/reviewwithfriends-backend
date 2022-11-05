@@ -6,11 +6,11 @@ edition = "2021"
 [dependencies]
 validation = { path = "./lib/validation" }
 jwt = { path = "./lib/jwt" }
-rocket = { version = "0.5.0-rc.2", features = ["json", "tls"] }
-rocket_db_pools = { version = "0.1.0-rc.2", features = ["sqlx_mysql"] }
-sqlx = { version = "0.5.0", features = ["runtime-tokio-rustls", "chrono"] }
-serde = "1.0.137"
+sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "chrono", "mysql"] }
+serde = { version = "1.0.137", features = ["derive"] }
 reqwest =  { version = "0.11.12", default-features = false, features = ["rustls-tls"] }
 chrono = { version  = "0.4.19", features = ["serde"] }
 uuid = { version  = "1.2.0", features = ["v4"] }
 rand = "0.8.5"
+actix-web = "4.2.1"
+futures-util = { version = "0.3.17", default-features = false, features = ["std"] }

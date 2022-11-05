@@ -1,5 +1,4 @@
-use rocket_db_pools::sqlx::{mysql::MySqlRow, Row};
-use sqlx::types::chrono::NaiveDateTime;
+use sqlx::{mysql::MySqlRow, types::chrono::NaiveDateTime, Row};
 
 /// A unique user in the application.
 pub struct User {

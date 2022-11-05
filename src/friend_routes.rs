@@ -1,15 +1,21 @@
+use actix_web::{
+    error::{ErrorBadRequest, ErrorInternalServerError},
+    get, post,
+    web::{Data, Json, ReqData},
+    HttpResponse, Responder, Result,
+};
 use chrono::NaiveDateTime;
-use rocket::{http::Status, response::status::Custom, serde::json::serde_json};
 use serde::Serialize;
+use sqlx::MySqlPool;
 
 use crate::{
+    authorization::AuthenticatedUser,
     db::{
         accept_friend_request, cancel_friend_request, create_friend_request,
         decline_friend_request, does_user_exist, get_current_friends, get_incoming_friend_requests,
         get_incoming_ignored_friend_requests, get_outgoing_friend_requests, ignore_friend_request,
-        remove_current_friend, DBClient, Friend, FriendRequest,
+        remove_current_friend, Friend, FriendRequest,
     },
-    JWTAuthorized,
 };
 
 /// DB Types are purposefuly not serialized.
@@ -56,9 +62,12 @@ impl From<FriendRequest> for FriendRequestPub {
     }
 }
 
-#[get("/")]
-pub async fn get_friends(auth: JWTAuthorized, client: &DBClient) -> Result<String, Custom<String>> {
-    let friends_res = get_current_friends(client, auth.0).await;
+#[get("")]
+pub async fn get_friends(
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
+) -> Result<impl Responder> {
+    let friends_res = get_current_friends(&pool, &authenticated_user.0).await;
 
     match friends_res {
         Ok(friends) => {
@@ -66,23 +75,18 @@ pub async fn get_friends(auth: JWTAuthorized, client: &DBClient) -> Result<Strin
                 .into_iter()
                 .map(|f| -> FriendPub { f.into() })
                 .collect();
-            Ok(serde_json::to_string(&friends_pub).unwrap())
+            Ok(Json(friends_pub))
         }
-        Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch friends".to_string(),
-            ))
-        }
+        Err(_) => return Err(ErrorInternalServerError("could not get friends")),
     }
 }
 
 #[get("/outgoing_requests")]
 pub async fn get_outgoing_requests(
-    auth: JWTAuthorized,
-    client: &DBClient,
-) -> Result<String, Custom<String>> {
-    let friend_requests_res = get_outgoing_friend_requests(client, auth.0).await;
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
+) -> Result<impl Responder> {
+    let friend_requests_res = get_outgoing_friend_requests(&pool, &authenticated_user.0).await;
 
     match friend_requests_res {
         Ok(friend_requests) => {
@@ -90,12 +94,11 @@ pub async fn get_outgoing_requests(
                 .into_iter()
                 .map(|f| -> FriendRequestPub { f.into() })
                 .collect();
-            Ok(serde_json::to_string(&friend_requests_pub).unwrap())
+            Ok(Json(friend_requests_pub))
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch outgoing friend requests".to_string(),
+            return Err(ErrorInternalServerError(
+                "could not fetch outgoing friend requests",
             ))
         }
     }
@@ -103,10 +106,10 @@ pub async fn get_outgoing_requests(
 
 #[get("/incoming_requests")]
 pub async fn get_incoming_requests(
-    auth: JWTAuthorized,
-    client: &DBClient,
-) -> Result<String, Custom<String>> {
-    let friend_requests_res = get_incoming_friend_requests(client, auth.0).await;
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
+) -> Result<impl Responder> {
+    let friend_requests_res = get_incoming_friend_requests(&pool, &authenticated_user.0).await;
 
     match friend_requests_res {
         Ok(friend_requests) => {
@@ -114,12 +117,11 @@ pub async fn get_incoming_requests(
                 .into_iter()
                 .map(|f| -> FriendRequestPub { f.into() })
                 .collect();
-            Ok(serde_json::to_string(&friend_requests_pub).unwrap())
+            Ok(Json(friend_requests_pub))
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch incoming friend requests".to_string(),
+            return Err(ErrorInternalServerError(
+                "could not fetch incoming friend requests",
             ))
         }
     }
@@ -127,10 +129,11 @@ pub async fn get_incoming_requests(
 
 #[get("/incoming_ignored_requests")]
 pub async fn get_incoming_ignored_requests(
-    auth: JWTAuthorized,
-    client: &DBClient,
-) -> Result<String, Custom<String>> {
-    let friend_requests_res = get_incoming_ignored_friend_requests(client, auth.0).await;
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
+) -> Result<impl Responder> {
+    let friend_requests_res =
+        get_incoming_ignored_friend_requests(&pool, &authenticated_user.0).await;
 
     match friend_requests_res {
         Ok(friend_requests) => {
@@ -138,12 +141,11 @@ pub async fn get_incoming_ignored_requests(
                 .into_iter()
                 .map(|f| -> FriendRequestPub { f.into() })
                 .collect();
-            Ok(serde_json::to_string(&friend_requests_pub).unwrap())
+            Ok(Json(friend_requests_pub))
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch incoming ignored friend requests".to_string(),
+            return Err(ErrorInternalServerError(
+                "could not fetch incoming ignored friend requests",
             ))
         }
     }
@@ -151,49 +153,38 @@ pub async fn get_incoming_ignored_requests(
 
 #[post("/send_request?<friend_id>")]
 pub async fn send_request(
-    auth: JWTAuthorized,
-    client: &DBClient,
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
     friend_id: String,
-) -> Result<(), Custom<String>> {
-    if &auth.0 == &friend_id {
-        return Err(Custom(
-            Status::BadRequest,
-            "you cant add yourself".to_string(),
-        ));
+) -> Result<impl Responder> {
+    if &authenticated_user.0 == &friend_id {
+        return Err(ErrorBadRequest("you cant add yourself"));
     }
 
-    let exists_res = does_user_exist(client, &friend_id).await;
+    let exists_res = does_user_exist(&pool, &friend_id).await;
     match exists_res {
         Ok(exists) => {
             if !exists {
-                return Err(Custom(
-                    Status::BadRequest,
-                    "no user exists with that id".to_string(),
-                ));
+                return Err(ErrorBadRequest("no user exists with that id"));
             }
         }
         Err(_) => {
-            return Err(Custom(
-                Status::BadRequest,
-                "unable to get friend".to_string(),
-            ));
+            return Err(ErrorBadRequest("unable to get user"));
         }
     }
 
-    let existing_requests_res = get_outgoing_friend_requests(client, auth.0.clone()).await;
+    let existing_requests_res =
+        get_outgoing_friend_requests(&pool, &authenticated_user.0.clone()).await;
     match existing_requests_res {
         Ok(existing_requests) => {
             if existing_requests
                 .into_iter()
                 .any(|er| -> bool { &er.friend_id == &friend_id })
             {
-                return Err(Custom(
-                    Status::BadRequest,
-                    "request already sent".to_string(),
-                ));
+                return Err(ErrorBadRequest("friend request already sent"));
             }
 
-            let friends_res = get_current_friends(client, auth.0.clone()).await;
+            let friends_res = get_current_friends(&pool, &authenticated_user.0.clone()).await;
 
             match friends_res {
                 Ok(friends) => {
@@ -201,33 +192,28 @@ pub async fn send_request(
                         .into_iter()
                         .any(|f| -> bool { &f.friend_id == &friend_id })
                     {
-                        return Err(Custom(Status::BadRequest, "already friends".to_string()));
+                        return Err(ErrorBadRequest("already friends"));
                     }
 
-                    let create_res =
-                        create_friend_request(client, auth.0.clone().as_str(), &friend_id).await;
+                    let create_res = create_friend_request(
+                        &pool,
+                        &authenticated_user.0.clone().as_str(),
+                        &friend_id,
+                    )
+                    .await;
                     match create_res {
-                        Ok(_) => return Ok(()),
+                        Ok(_) => return Ok(HttpResponse::Ok()),
                         Err(_) => {
-                            return Err(Custom(
-                                Status::InternalServerError,
-                                "error creating friend request".to_string(),
-                            ))
+                            return Err(ErrorInternalServerError("could not create friend request"))
                         }
                     }
                 }
-                Err(_) => {
-                    return Err(Custom(
-                        Status::InternalServerError,
-                        "unable to get friends".to_string(),
-                    ))
-                }
+                Err(_) => return Err(ErrorInternalServerError("unable to fetch friends")),
             }
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "unable to fetch existing requests".to_string(),
+            return Err(ErrorInternalServerError(
+                "unable to fetch existing requests",
             ))
         }
     }
@@ -235,11 +221,12 @@ pub async fn send_request(
 
 #[post("/accept_request?<request_id>")]
 pub async fn accept_request(
-    auth: JWTAuthorized,
-    client: &DBClient,
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
     request_id: String,
-) -> Result<(), Custom<String>> {
-    let friend_requests_res = get_incoming_friend_requests(client, auth.0.clone()).await;
+) -> Result<impl Responder> {
+    let friend_requests_res =
+        get_incoming_friend_requests(&pool, &authenticated_user.0.clone()).await;
 
     match friend_requests_res {
         Ok(friend_requests) => {
@@ -249,29 +236,26 @@ pub async fn accept_request(
 
             match request_opt {
                 Some(request) => {
-                    let accept_res =
-                        accept_friend_request(&client, &auth.0.clone(), &request.user_id).await;
+                    let accept_res = accept_friend_request(
+                        &pool,
+                        &&authenticated_user.0.clone(),
+                        &request.user_id,
+                    )
+                    .await;
 
                     match accept_res {
-                        Ok(_) => Ok(()),
-                        Err(_) => Err(Custom(
-                            Status::BadRequest,
-                            "failed accepting friend request".to_string(),
-                        )),
+                        Ok(_) => Ok(HttpResponse::Ok()),
+                        Err(_) => Err(ErrorInternalServerError("failed accepting friend request")),
                     }
                 }
                 None => {
-                    return Err(Custom(
-                        Status::BadRequest,
-                        "friend request does not exist".to_string(),
-                    ));
+                    return Err(ErrorBadRequest("friend request doesnt exist"));
                 }
             }
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch incoming friend requests".to_string(),
+            return Err(ErrorInternalServerError(
+                "could not fetch incoming friend requests",
             ))
         }
     }
@@ -279,11 +263,12 @@ pub async fn accept_request(
 
 #[post("/cancel_request?<request_id>")]
 pub async fn cancel_request(
-    auth: JWTAuthorized,
-    client: &DBClient,
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
     request_id: String,
-) -> Result<(), Custom<String>> {
-    let friend_requests_res = get_outgoing_friend_requests(client, auth.0.clone()).await;
+) -> Result<impl Responder> {
+    let friend_requests_res =
+        get_outgoing_friend_requests(&pool, &authenticated_user.0.clone()).await;
 
     match friend_requests_res {
         Ok(friend_requests) => {
@@ -292,26 +277,20 @@ pub async fn cancel_request(
             });
 
             if friend_request_exists {
-                let cancel_res = cancel_friend_request(&client, &request_id, &auth.0.clone()).await;
+                let cancel_res =
+                    cancel_friend_request(&pool, &request_id, &&authenticated_user.0.clone()).await;
 
                 match cancel_res {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(Custom(
-                        Status::BadRequest,
-                        "failed cancelling friend request".to_string(),
-                    )),
+                    Ok(_) => Ok(HttpResponse::Ok()),
+                    Err(_) => Err(ErrorInternalServerError("failed cancelling friend request")),
                 }
             } else {
-                return Err(Custom(
-                    Status::BadRequest,
-                    "friend request does not exist".to_string(),
-                ));
+                return Err(ErrorBadRequest("friend request doesnt exist"));
             }
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch incoming friend requests".to_string(),
+            return Err(ErrorInternalServerError(
+                "could not fetch incoming friend requests",
             ))
         }
     }
@@ -319,51 +298,12 @@ pub async fn cancel_request(
 
 #[post("/ignore_request?<request_id>")]
 pub async fn ignore_request(
-    auth: JWTAuthorized,
-    client: &DBClient,
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
     request_id: String,
-) -> Result<(), Custom<String>> {
-    let friend_requests_res = get_incoming_friend_requests(client, auth.0.clone()).await;
-
-    match friend_requests_res {
-        Ok(friend_requests) => {
-            let friend_request_exists = friend_requests.into_iter().any(|fr| -> bool {
-                return fr.id == request_id;
-            });
-
-            if friend_request_exists {
-                let ignore_res = ignore_friend_request(&client, &request_id, &auth.0.clone()).await;
-
-                match ignore_res {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(Custom(
-                        Status::BadRequest,
-                        "failed ignoring friend request".to_string(),
-                    )),
-                }
-            } else {
-                return Err(Custom(
-                    Status::BadRequest,
-                    "friend request does not exist".to_string(),
-                ));
-            }
-        }
-        Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch incoming friend requests".to_string(),
-            ))
-        }
-    }
-}
-
-#[post("/decline_request?<request_id>")]
-pub async fn decline_request(
-    auth: JWTAuthorized,
-    client: &DBClient,
-    request_id: String,
-) -> Result<(), Custom<String>> {
-    let friend_requests_res = get_incoming_friend_requests(client, auth.0.clone()).await;
+) -> Result<impl Responder> {
+    let friend_requests_res =
+        get_incoming_friend_requests(&pool, &authenticated_user.0.clone()).await;
 
     match friend_requests_res {
         Ok(friend_requests) => {
@@ -373,26 +313,55 @@ pub async fn decline_request(
 
             if friend_request_exists {
                 let ignore_res =
-                    decline_friend_request(&client, &request_id, &auth.0.clone()).await;
+                    ignore_friend_request(&pool, &request_id, &&authenticated_user.0.clone()).await;
 
                 match ignore_res {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(Custom(
-                        Status::BadRequest,
-                        "failed declining friend request".to_string(),
-                    )),
+                    Ok(_) => Ok(HttpResponse::Ok()),
+                    Err(_) => Err(ErrorInternalServerError("failed ignoring friend request")),
                 }
             } else {
-                return Err(Custom(
-                    Status::BadRequest,
-                    "friend request does not exist".to_string(),
-                ));
+                return Err(ErrorBadRequest("friend request doesnt exist"));
             }
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch incoming friend requests".to_string(),
+            return Err(ErrorInternalServerError(
+                "could not fetch incoming friend requests",
+            ))
+        }
+    }
+}
+
+#[post("/decline_request?<request_id>")]
+pub async fn decline_request(
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
+    request_id: String,
+) -> Result<impl Responder> {
+    let friend_requests_res =
+        get_incoming_friend_requests(&pool, &authenticated_user.0.clone()).await;
+
+    match friend_requests_res {
+        Ok(friend_requests) => {
+            let friend_request_exists = friend_requests.into_iter().any(|fr| -> bool {
+                return fr.id == request_id;
+            });
+
+            if friend_request_exists {
+                let ignore_res =
+                    decline_friend_request(&pool, &request_id, &&authenticated_user.0.clone())
+                        .await;
+
+                match ignore_res {
+                    Ok(_) => Ok(HttpResponse::Ok()),
+                    Err(_) => Err(ErrorInternalServerError("failed declining friend request")),
+                }
+            } else {
+                return Err(ErrorBadRequest("friend request doesnt exist"));
+            }
+        }
+        Err(_) => {
+            return Err(ErrorInternalServerError(
+                "could not fetch incoming friend requests",
             ))
         }
     }
@@ -400,11 +369,11 @@ pub async fn decline_request(
 
 #[post("/remove?<friend_id>")]
 pub async fn remove_friend(
-    auth: JWTAuthorized,
-    client: &DBClient,
+    authenticated_user: ReqData<AuthenticatedUser>,
+    pool: Data<MySqlPool>,
     friend_id: String,
-) -> Result<(), Custom<String>> {
-    let friends_res = get_current_friends(client, auth.0.clone()).await;
+) -> Result<impl Responder> {
+    let friends_res = get_current_friends(&pool, &authenticated_user.0.clone()).await;
 
     match friends_res {
         Ok(friends) => {
@@ -413,27 +382,17 @@ pub async fn remove_friend(
             });
 
             if friend_exists {
-                let remove_res = remove_current_friend(&client, &auth.0.clone(), &friend_id).await;
+                let remove_res =
+                    remove_current_friend(&pool, &&authenticated_user.0.clone(), &friend_id).await;
 
                 match remove_res {
-                    Ok(_) => Ok(()),
-                    Err(_) => Err(Custom(
-                        Status::BadRequest,
-                        "failed removing friend".to_string(),
-                    )),
+                    Ok(_) => Ok(HttpResponse::Ok()),
+                    Err(_) => Err(ErrorInternalServerError("failed removing friend")),
                 }
             } else {
-                return Err(Custom(
-                    Status::BadRequest,
-                    "friend request does not exist".to_string(),
-                ));
+                return Err(ErrorBadRequest("friend doesnt exist"));
             }
         }
-        Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "could not fetch incoming friend requests".to_string(),
-            ))
-        }
+        Err(_) => return Err(ErrorInternalServerError("could not fetch friends")),
     }
 }

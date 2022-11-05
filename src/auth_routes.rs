@@ -5,47 +5,45 @@ use crate::{
         create_authattempt, create_phoneauth, create_user, get_current_phoneauths,
         get_phoneauth_attempts, get_user_by_phone, update_authattempt_used, PhoneAuth, User,
     },
-    Config, DBClient,
+    Config,
+};
+use actix_web::{
+    error::{ErrorBadRequest, ErrorInternalServerError},
+    post,
+    web::Data,
+    HttpResponse, Responder, Result,
 };
 use chrono::Utc;
-use jwt::{mint_jwt, SigningKeys};
+use jwt::mint_jwt;
 use rand::Rng;
 use reqwest::ClientBuilder;
-use rocket::{http::Status, response::status::Custom, State};
+use sqlx::MySqlPool;
 use uuid::Uuid;
 use validation;
 
 #[post("/requestcode?<phone>")]
 pub async fn request_code(
-    client: &DBClient,
-    config: &State<Config>,
-    phone: &str,
-) -> Result<(), Custom<String>> {
-    let valid_phone = validation::validate_phone(phone);
+    pool: Data<MySqlPool>,
+    config: Data<Config>,
+    phone: String,
+) -> Result<impl Responder> {
+    let valid_phone = validation::validate_phone(&phone);
     if let Err(phone_err) = valid_phone {
-        return Err(Custom(Status::BadRequest, phone_err.to_string()));
+        return Err(ErrorBadRequest(phone_err));
     }
 
-    let phoneauths_res = get_current_phoneauths(client, phone.to_string()).await;
+    let phoneauths_res = get_current_phoneauths(&pool, &phone).await;
 
     match phoneauths_res {
         Ok(phoneauths) => {
             if phoneauths.len() >= 3 {
-                return Err(Custom(
-                    Status::BadRequest,
-                    "too many auth attempts".to_string(),
-                ));
+                return Err(ErrorBadRequest("too many auth attempts"));
             }
         }
-        Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "unable to fetch auths".to_string(),
-            ))
-        }
+        Err(_) => return Err(ErrorInternalServerError("unable to fetch auths")),
     }
 
-    let user_res = get_user_by_phone(client, phone).await;
+    let user_res = get_user_by_phone(&pool, &phone).await;
 
     let existing_user: User;
 
@@ -62,94 +60,73 @@ pub async fn request_code(
                     created: Utc::now().naive_utc(),
                 };
 
-                let create_res = create_user(client, &existing_user).await;
+                let create_res = create_user(&pool, &existing_user).await;
 
                 match create_res {
                     Ok(_) => {}
                     Err(_) => {
-                        return Err(Custom(
-                            Status::InternalServerError,
-                            "error creating user".to_string(),
-                        ));
+                        return Err(ErrorInternalServerError("error creating user"));
                     }
                 }
             }
         }
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "error fetching from db".to_string(),
-            ));
+            return Err(ErrorInternalServerError("error fetching user"));
         }
     };
 
     let auth_code = get_new_auth_code();
-    let phoneauth_res = create_phoneauth(client, &existing_user.phone, &auth_code).await;
+    let phoneauth_res = create_phoneauth(&pool, &existing_user.phone, &auth_code).await;
 
     match phoneauth_res {
         Ok(_) => {}
         Err(_) => {
-            return Err(Custom(
-                Status::InternalServerError,
-                "error creating auth".to_string(),
-            ))
+            return Err(ErrorInternalServerError("error creating auth"));
         }
     }
 
-    send_auth(&config.twilio, &existing_user.phone, &auth_code).await;
+    send_auth(&config.twilio_key, &existing_user.phone, &auth_code).await;
 
-    Ok(())
+    Ok(HttpResponse::Ok())
 }
 
 #[post("/signin?<code>&<phone>")]
 pub async fn sign_in(
-    signing_keys: &State<SigningKeys>,
-    client: &DBClient,
-    code: &str,
-    phone: &str,
-) -> Result<String, Custom<String>> {
-    let valid_phone = validation::validate_phone(phone);
+    config: Data<Config>,
+    pool: Data<MySqlPool>,
+    code: String,
+    phone: String,
+) -> Result<impl Responder> {
+    let valid_phone = validation::validate_phone(&phone);
     if let Err(phone_err) = valid_phone {
-        return Err(Custom(Status::BadRequest, phone_err.to_string()));
+        return Err(ErrorBadRequest(phone_err.to_string()));
     }
 
-    let valid_code = validation::validate_code(code);
+    let valid_code = validation::validate_code(&code);
     if let Err(code_err) = valid_code {
-        return Err(Custom(Status::BadRequest, code_err.to_string()));
+        return Err(ErrorBadRequest(code_err.to_string()));
     }
 
-    let create_authattempt_res = create_authattempt(client, phone).await;
+    let create_authattempt_res = create_authattempt(&pool, &phone).await;
     if let Err(_) = create_authattempt_res {
-        return Err(Custom(
-            Status::InternalServerError,
-            "unable to start auth attempt".to_string(),
-        ));
+        return Err(ErrorInternalServerError("unable to start auth attempt"));
     }
 
-    let phone_auth_attemps_res = get_phoneauth_attempts(client, phone.to_string()).await;
+    let phone_auth_attemps_res = get_phoneauth_attempts(&pool, &phone).await;
     if let Ok(phone_auth_attempts) = phone_auth_attemps_res {
         if phone_auth_attempts.len() >= 4 {
-            return Err(Custom(
-                Status::BadRequest,
-                "too many auth attempts".to_string(),
-            ));
+            return Err(ErrorBadRequest("too many auth attempts"));
         }
     } else {
-        return Err(Custom(
-            Status::InternalServerError,
-            "unable to get auth attempts".to_string(),
-        ));
+        return Err(ErrorInternalServerError("unable to get auth attempts"));
     }
 
-    let phone_auth_res = get_current_phoneauths(client, phone.to_string()).await;
+    let phone_auth_res = get_current_phoneauths(&pool, &phone).await;
     let phone_auths: Vec<PhoneAuth>;
     if let Ok(phone_auths_tmp) = phone_auth_res {
         phone_auths = phone_auths_tmp;
     } else {
-        return Err(Custom(
-            Status::InternalServerError,
-            "unable to get current phoneauths".to_string(),
-        ));
+        return Err(ErrorInternalServerError("unable to get current phoneauths"));
     }
 
     let matched_phoneauth = phone_auths
@@ -159,37 +136,30 @@ pub async fn sign_in(
 
     if matched_phoneauth.len() == 1 {
         let user: User;
-        let user_res = get_user_by_phone(client, phone).await;
+        let user_res = get_user_by_phone(&pool, &phone).await;
         if let Ok(user_opt) = user_res {
             if let Some(user_tmp) = user_opt {
                 user = user_tmp;
             } else {
-                return Err(Custom(
-                    Status::InternalServerError,
-                    "unable to find use for given phone".to_string(),
+                return Err(ErrorInternalServerError(
+                    "unable to find use for given phone",
                 ));
             }
         } else {
-            return Err(Custom(
-                Status::InternalServerError,
-                "error fetching user by phone".to_string(),
-            ));
+            return Err(ErrorInternalServerError("error fetching user by phone"));
         }
 
         let authattempt_update_res =
-            update_authattempt_used(client, &matched_phoneauth.first().unwrap().id).await;
+            update_authattempt_used(&pool, &matched_phoneauth.first().unwrap().id).await;
         if let Err(_) = authattempt_update_res {
-            return Err(Custom(
-                Status::InternalServerError,
-                "unable to update authattempt".to_string(),
-            ));
+            return Err(ErrorInternalServerError("unable to update authattempt"));
         }
 
-        let jwt = mint_jwt(&signing_keys, &user.id);
+        let jwt = mint_jwt(&config.signing_keys, &user.id);
 
         Ok(jwt)
     } else {
-        return Err(Custom(Status::BadRequest, "invalid code".to_string()));
+        return Err(ErrorBadRequest("invalid code"));
     }
 }
 

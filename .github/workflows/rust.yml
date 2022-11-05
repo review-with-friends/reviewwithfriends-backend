@@ -13,30 +13,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Rocket TOML Mob DB
-        uses: colathro/toml-editor@1.0.7
-        with:
-          file: "./Rocket.toml"
-          key: "release.databases.mob.url"
-          value: "${{ secrets.MONGO_DB }}"
-      - name: Rocket TOML Twilio
-        uses: colathro/toml-editor@1.0.7
-        with:
-          file: "./Rocket.toml"
-          key: "release.twilio"
-          value: "${{ secrets.TWILIO_KEY }}"
-      - name: Rocket TOML JWT SECRET
-        uses: colathro/toml-editor@1.0.7
-        with:
-          file: "./Rocket.toml"
-          key: "release.jwt_secret"
-          value: "${{ secrets.JWT_SECRET }}"
       - name: Build
         run: cargo build --release
       - name: Test Validation
         run: cargo test -p validation --release
       - name: Build image
-        run: docker build -t registry.digitalocean.com/mob/backend:latest .
+        run: docker build -t registry.digitalocean.com/mob/backend:latest . --env JWT_KEY=${{ secrets.JWT_SECRET }} --env TWILIO=${{ secrets.TWILIO_KEY }} --env DB_CONNECTION=${{ secrets.MONGO_DB }}
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:

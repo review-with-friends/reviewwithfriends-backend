@@ -1,88 +1,85 @@
-#[macro_use]
-extern crate rocket;
-
-use ::serde::Deserialize;
-use db::DBClient;
-use jwt::{encode_jwt_secret, validate_jwt, SigningKeys};
-use rocket::{
-    fairing::AdHoc,
-    http::Status,
-    request::{FromRequest, Outcome},
-    Request,
+use actix_web::{
+    web::{self, Data},
+    App, HttpServer,
 };
-use rocket_db_pools::Database;
+use auth_routes::*;
+use authorization::Authorization;
+use friend_routes::*;
+use jwt::{encode_jwt_secret, SigningKeys};
+use ping_routes::ping;
+use sqlx::MySqlPool;
+use std::env;
 
 mod auth_routes;
+mod authorization;
 mod db;
 mod friend_routes;
 mod ping_routes;
 
-#[derive(Deserialize)]
+#[derive(Clone)]
 pub struct Config {
-    twilio: String,
+    twilio_key: String,
+    db_connection_string: String,
+    signing_keys: SigningKeys,
 }
 
-#[launch]
-async fn rocket() -> _ {
-    println!("Mob has started.");
-
-    let rocket = rocket::build();
-    let figment = rocket.figment();
-
-    let custom: String = figment
-        .extract_inner("jwt_secret")
-        .expect("missing jwt secret");
-    let signing_keys = encode_jwt_secret(&custom);
-
-    rocket
-        .attach(DBClient::init())
-        .attach(AdHoc::config::<Config>())
-        .manage(signing_keys)
-        .mount("/", routes![ping_routes::ping])
-        .mount(
-            "/api/v1/friends",
-            routes![
-                friend_routes::get_friends,
-                friend_routes::get_outgoing_requests,
-                friend_routes::get_incoming_requests,
-                friend_routes::get_incoming_ignored_requests,
-                friend_routes::send_request,
-                friend_routes::decline_request,
-                friend_routes::ignore_request,
-                friend_routes::cancel_request,
-                friend_routes::accept_request,
-                friend_routes::remove_friend
-            ],
-        )
-        .mount(
-            "/auth/v1",
-            routes![auth_routes::request_code, auth_routes::sign_in],
-        )
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    let config: Config = build_config();
+    let pool: MySqlPool = MySqlPool::connect(&config.db_connection_string)
+        .await
+        .unwrap();
+    HttpServer::new(move || {
+        App::new()
+            .app_data(Data::new(config.clone()))
+            .app_data(Data::new(pool.clone()))
+            .wrap(Authorization)
+            .service(web::scope("/ping").service(ping))
+            .service(web::scope("/auth").service(request_code).service(sign_in))
+            .service(
+                web::scope("/api").service(
+                    web::scope("/v1").service(
+                        web::scope("/friends")
+                            .service(get_friends)
+                            .service(get_outgoing_requests)
+                            .service(get_incoming_requests)
+                            .service(get_incoming_ignored_requests)
+                            .service(send_request)
+                            .service(accept_request)
+                            .service(cancel_request)
+                            .service(decline_request)
+                            .service(remove_friend),
+                    ),
+                ),
+            )
+    })
+    .bind(build_binding())?
+    .run()
+    .await
 }
 
-#[derive(Debug)]
-pub enum JWTError {
-    Invalid,
+fn build_config() -> Config {
+    let is_dev = env::var("MOB_DEV");
+
+    match is_dev {
+        Ok(_) => Config {
+            twilio_key: String::from("123"),
+            db_connection_string: String::from("mysql://root:test123@localhost:53208/mob"),
+            signing_keys: encode_jwt_secret("thisisatestkey"),
+        },
+        Err(_) => Config {
+            twilio_key: env::var("TWILIO").unwrap(),
+            db_connection_string: env::var("DB_CONNECTION").unwrap(),
+            signing_keys: encode_jwt_secret(&env::var("JWT_KEY").unwrap()),
+        },
+    }
 }
 
-pub struct JWTAuthorized(pub String);
+fn build_binding() -> (&'static str, u16) {
+    let is_dev = env::var("MOB_DEV");
 
-/// When JWTAuthorized is on the route, this guard will fire and ensure authorization is passed.
-/// JWTAuthorized contains the users id for fetching information and validation relationships.
-#[async_trait]
-impl<'r> FromRequest<'r> for JWTAuthorized {
-    type Error = JWTError;
-
-    async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let jwt = request.headers().get_one("Authorization").unwrap_or("");
-        let keys = request.rocket().state::<SigningKeys>().unwrap();
-        match validate_jwt(&keys, jwt) {
-            Some(id) => {
-                return Outcome::Success(JWTAuthorized(id));
-            }
-            None => {
-                return Outcome::Failure((Status::Unauthorized, JWTError::Invalid));
-            }
-        }
+    match is_dev {
+        Ok(_) => ("127.0.0.1", 8080),
+        Err(_) => ("0.0.0.0", 80),
     }
 }
