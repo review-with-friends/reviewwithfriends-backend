@@ -18,7 +18,7 @@ jobs:
       - name: Test Validation
         run: cargo test -p validation --release
       - name: Build image
-        run: docker build -t registry.digitalocean.com/mob/backend:latest . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}"
+        run: docker build -t registry.digitalocean.com/spacedoglabs/backends:bout . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}"
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
         with:
@@ -26,4 +26,4 @@ jobs:
       - name: Log in to DO Container Registry
         run: doctl registry login --expiry-seconds 600
       - name: Push image to DO Container Registry
-        run: docker push registry.digitalocean.com/mob/backend:latest
+        run: docker push registry.digitalocean.com/spacedoglabs/backends:bout

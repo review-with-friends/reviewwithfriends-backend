@@ -16,7 +16,7 @@ use actix_web::{
 use chrono::Utc;
 use jwt::mint_jwt;
 use rand::Rng;
-use reqwest::ClientBuilder;
+use reqwest::{ClientBuilder, StatusCode};
 use sqlx::MySqlPool;
 use uuid::Uuid;
 use validation;
@@ -85,9 +85,12 @@ pub async fn request_code(
         }
     }
 
-    send_auth(&config.twilio_key, &existing_user.phone, &auth_code).await;
+    let auth_res = send_auth(&config.twilio_key, &existing_user.phone, &auth_code).await;
 
-    Ok(HttpResponse::Ok())
+    match auth_res {
+        Ok(_) => Ok(HttpResponse::Ok()),
+        Err(_) => Ok(HttpResponse::InternalServerError()),
+    }
 }
 
 #[post("/signin?<code>&<phone>")]
@@ -163,7 +166,7 @@ pub async fn sign_in(
     }
 }
 
-async fn send_auth(twilio_secret: &String, phone: &str, code: &str) {
+async fn send_auth(twilio_secret: &String, phone: &str, code: &str) -> Result<(), String> {
     let request_url = "https://api.twilio.com/2010-04-01/Accounts/AC0094c61aa39fc9c673130f6e28e43bad/Messages.json";
 
     let timeout = Duration::new(5, 0);
@@ -176,14 +179,25 @@ async fn send_auth(twilio_secret: &String, phone: &str, code: &str) {
     params.insert("From", "+17246134841".to_string());
     params.insert("To", format!("+{}", clean_phone));
 
-    let response = client
+    let response_res = client
         .post(request_url)
         .header("Content-Type", "application/x-www-form-urlencoded")
         .form(&params)
         .basic_auth("AC0094c61aa39fc9c673130f6e28e43bad", Some(twilio_secret))
         .send()
-        .await
-        .unwrap();
+        .await;
+
+    match response_res {
+        Ok(response) => match response.status() {
+            StatusCode::OK => Ok(()),
+            _ => Err(format!(
+                "{} {}",
+                "twilio send failed with status".to_string(),
+                response.status()
+            )),
+        },
+        Err(_) => Err("twilio send failed".to_string()),
+    }
 }
 
 /// Gets a name for a new user to default to.

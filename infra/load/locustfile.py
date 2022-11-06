@@ -7,7 +7,4 @@ class HelloWorldUser(HttpUser):
     @task 
     # Define a new method
     def hello_world(self): 
-        # This method will run an HTTP GET request on the path `/` 
-        # of the site you are testing
-        self.client.verify = False
-        self.client.get("/api/test/auth_helloworld") 
+        self.client.get("/ping") 
