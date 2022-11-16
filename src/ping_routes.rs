@@ -3,9 +3,10 @@ use actix_web::{
     get,
     http::header::ContentType,
     post,
-    web::{Bytes, Data},
+    web::{Bytes, Data, Query},
     HttpResponse, Responder, Result,
 };
+use serde::Deserialize;
 use sqlx::MySqlPool;
 use tokio::io::AsyncReadExt;
 
@@ -25,12 +26,20 @@ pub async fn ping(pool: Data<MySqlPool>) -> Result<impl Responder> {
     }
 }
 
-#[get("/pic/{friend_id}")]
-pub async fn pic(s3_client: Data<S3Client>, friend_id: String) -> Result<HttpResponse> {
+#[derive(Deserialize)]
+pub struct ImageRequest {
+    image_name: String,
+}
+
+#[get("/pic")]
+pub async fn pic(
+    s3_client: Data<S3Client>,
+    image_request: Query<ImageRequest>,
+) -> Result<HttpResponse> {
     let get_output = s3_client
         .get_object(GetObjectRequest {
             bucket: "bout-dev".to_string(),
-            key: friend_id,
+            key: image_request.image_name.clone(),
             ..Default::default()
         })
         .await
@@ -50,7 +59,7 @@ pub async fn pic(s3_client: Data<S3Client>, friend_id: String) -> Result<HttpRes
         .body(buf))
 }
 
-#[post("pic")]
+#[post("/pic")]
 pub async fn upload_pic(s3_client: Data<S3Client>, bytes: Bytes) -> Result<HttpResponse> {
     s3_client
         .put_object(PutObjectRequest {
