@@ -1,11 +1,11 @@
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
     get, post,
-    web::{Data, Json, ReqData},
+    web::{Data, Json, Query, ReqData},
     HttpResponse, Responder, Result,
 };
 use chrono::NaiveDateTime;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 
 use crate::{
@@ -20,7 +20,7 @@ use crate::{
 
 /// DB Types are purposefuly not serialized.
 /// We require DTO objects suffixed with 'Pub'
-/// to trim database object appropraitley.
+/// to trim database object appropriately.
 #[derive(Serialize)]
 struct FriendPub {
     pub id: String,
@@ -42,7 +42,7 @@ impl From<Friend> for FriendPub {
 
 /// DB Types are purposefuly not serialized.
 /// We require DTO objects suffixed with 'Pub'
-/// to trim database object appropraitley.
+/// to trim database object appropriately.
 #[derive(Serialize)]
 struct FriendRequestPub {
     pub id: String,
@@ -151,17 +151,22 @@ pub async fn get_incoming_ignored_requests(
     }
 }
 
-#[post("/send_request?<friend_id>")]
+#[derive(Deserialize)]
+pub struct SendRequest {
+    friend_id: String,
+}
+
+#[post("/send_request")]
 pub async fn send_request(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    friend_id: String,
+    send_request: Query<SendRequest>,
 ) -> Result<impl Responder> {
-    if &authenticated_user.0 == &friend_id {
+    if &authenticated_user.0 == &send_request.friend_id {
         return Err(ErrorBadRequest("you cant add yourself"));
     }
 
-    let exists_res = does_user_exist(&pool, &friend_id).await;
+    let exists_res = does_user_exist(&pool, &send_request.friend_id).await;
     match exists_res {
         Ok(exists) => {
             if !exists {
@@ -179,7 +184,7 @@ pub async fn send_request(
         Ok(existing_requests) => {
             if existing_requests
                 .into_iter()
-                .any(|er| -> bool { &er.friend_id == &friend_id })
+                .any(|er| -> bool { &er.friend_id == &send_request.friend_id })
             {
                 return Err(ErrorBadRequest("friend request already sent"));
             }
@@ -190,7 +195,7 @@ pub async fn send_request(
                 Ok(friends) => {
                     if friends
                         .into_iter()
-                        .any(|f| -> bool { &f.friend_id == &friend_id })
+                        .any(|f| -> bool { &f.friend_id == &send_request.friend_id })
                     {
                         return Err(ErrorBadRequest("already friends"));
                     }
@@ -198,7 +203,7 @@ pub async fn send_request(
                     let create_res = create_friend_request(
                         &pool,
                         &authenticated_user.0.clone().as_str(),
-                        &friend_id,
+                        &send_request.friend_id,
                     )
                     .await;
                     match create_res {
@@ -219,11 +224,16 @@ pub async fn send_request(
     }
 }
 
-#[post("/accept_request?<request_id>")]
+#[derive(Deserialize)]
+pub struct AcceptRequest {
+    request_id: String,
+}
+
+#[post("/accept_request")]
 pub async fn accept_request(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    request_id: String,
+    accept_request: Query<AcceptRequest>,
 ) -> Result<impl Responder> {
     let friend_requests_res =
         get_incoming_friend_requests(&pool, &authenticated_user.0.clone()).await;
@@ -231,7 +241,7 @@ pub async fn accept_request(
     match friend_requests_res {
         Ok(friend_requests) => {
             let request_opt = friend_requests.into_iter().find(|fr| -> bool {
-                return fr.id == request_id;
+                return fr.id == accept_request.request_id;
             });
 
             match request_opt {
@@ -261,11 +271,16 @@ pub async fn accept_request(
     }
 }
 
-#[post("/cancel_request?<request_id>")]
+#[derive(Deserialize)]
+pub struct CancelRequest {
+    request_id: String,
+}
+
+#[post("/cancel_request")]
 pub async fn cancel_request(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    request_id: String,
+    cancel_request: Query<CancelRequest>,
 ) -> Result<impl Responder> {
     let friend_requests_res =
         get_outgoing_friend_requests(&pool, &authenticated_user.0.clone()).await;
@@ -273,12 +288,16 @@ pub async fn cancel_request(
     match friend_requests_res {
         Ok(friend_requests) => {
             let friend_request_exists = friend_requests.into_iter().any(|fr| -> bool {
-                return fr.id == request_id;
+                return fr.id == cancel_request.request_id;
             });
 
             if friend_request_exists {
-                let cancel_res =
-                    cancel_friend_request(&pool, &request_id, &&authenticated_user.0.clone()).await;
+                let cancel_res = cancel_friend_request(
+                    &pool,
+                    &cancel_request.request_id,
+                    &&authenticated_user.0.clone(),
+                )
+                .await;
 
                 match cancel_res {
                     Ok(_) => Ok(HttpResponse::Ok()),
@@ -296,11 +315,16 @@ pub async fn cancel_request(
     }
 }
 
-#[post("/ignore_request?<request_id>")]
+#[derive(Deserialize)]
+pub struct IgnoreRequest {
+    request_id: String,
+}
+
+#[post("/ignore_request")]
 pub async fn ignore_request(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    request_id: String,
+    ignore_request: Query<IgnoreRequest>,
 ) -> Result<impl Responder> {
     let friend_requests_res =
         get_incoming_friend_requests(&pool, &authenticated_user.0.clone()).await;
@@ -308,12 +332,16 @@ pub async fn ignore_request(
     match friend_requests_res {
         Ok(friend_requests) => {
             let friend_request_exists = friend_requests.into_iter().any(|fr| -> bool {
-                return fr.id == request_id;
+                return fr.id == ignore_request.request_id;
             });
 
             if friend_request_exists {
-                let ignore_res =
-                    ignore_friend_request(&pool, &request_id, &&authenticated_user.0.clone()).await;
+                let ignore_res = ignore_friend_request(
+                    &pool,
+                    &ignore_request.request_id,
+                    &&authenticated_user.0.clone(),
+                )
+                .await;
 
                 match ignore_res {
                     Ok(_) => Ok(HttpResponse::Ok()),
@@ -331,11 +359,16 @@ pub async fn ignore_request(
     }
 }
 
-#[post("/decline_request?<request_id>")]
+#[derive(Deserialize)]
+pub struct DeclineRequest {
+    request_id: String,
+}
+
+#[post("/decline_request")]
 pub async fn decline_request(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    request_id: String,
+    decline_request: Query<DeclineRequest>,
 ) -> Result<impl Responder> {
     let friend_requests_res =
         get_incoming_friend_requests(&pool, &authenticated_user.0.clone()).await;
@@ -343,13 +376,16 @@ pub async fn decline_request(
     match friend_requests_res {
         Ok(friend_requests) => {
             let friend_request_exists = friend_requests.into_iter().any(|fr| -> bool {
-                return fr.id == request_id;
+                return fr.id == decline_request.request_id;
             });
 
             if friend_request_exists {
-                let ignore_res =
-                    decline_friend_request(&pool, &request_id, &&authenticated_user.0.clone())
-                        .await;
+                let ignore_res = decline_friend_request(
+                    &pool,
+                    &decline_request.request_id,
+                    &&authenticated_user.0.clone(),
+                )
+                .await;
 
                 match ignore_res {
                     Ok(_) => Ok(HttpResponse::Ok()),
@@ -367,23 +403,32 @@ pub async fn decline_request(
     }
 }
 
-#[post("/remove?<friend_id>")]
+#[derive(Deserialize)]
+pub struct RemoveRequest {
+    friend_id: String,
+}
+
+#[post("/remove")]
 pub async fn remove_friend(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    friend_id: String,
+    remove_request: Query<RemoveRequest>,
 ) -> Result<impl Responder> {
     let friends_res = get_current_friends(&pool, &authenticated_user.0.clone()).await;
 
     match friends_res {
         Ok(friends) => {
             let friend_exists = friends.into_iter().any(|fr| -> bool {
-                return fr.friend_id == friend_id;
+                return fr.friend_id == remove_request.friend_id;
             });
 
             if friend_exists {
-                let remove_res =
-                    remove_current_friend(&pool, &&authenticated_user.0.clone(), &friend_id).await;
+                let remove_res = remove_current_friend(
+                    &pool,
+                    &&authenticated_user.0.clone(),
+                    &remove_request.friend_id,
+                )
+                .await;
 
                 match remove_res {
                     Ok(_) => Ok(HttpResponse::Ok()),
