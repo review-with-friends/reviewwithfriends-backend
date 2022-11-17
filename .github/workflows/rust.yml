@@ -37,7 +37,7 @@ jobs:
       - name: Skip Build and Image Push if Version Already Exists
         id: container_exists
         continue-on-error: true
-        run: docker manifest inspect registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} > /dev/null && echo container_exists=$? >> $GITHUB_ENV
+        run: docker manifest inspect registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} > /dev/null ; echo container_exists=$? >> $GITHUB_ENV
 
       - name: Build image
         if: ${{ env.container_exists }} == '0'
