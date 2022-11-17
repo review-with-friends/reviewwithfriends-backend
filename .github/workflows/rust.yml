@@ -26,22 +26,21 @@ jobs:
       - name: Test Validation
         run: cargo test -p validation --release
 
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DOCKER_LOGIN }}
+
       - name: Log in to DO Container Registry
         run: doctl registry login
 
-      - name: Fail if Container Exists
+      - name: Skip Build and Image Push if Version Already Exists
         id: container_exists
         run: docker manifest inspect registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} > /dev/null ; echo container_exists=$? >> $GITHUB_ENV
 
       - name: Build image
         if: ${{ env.container_exists }} == '0'
         run: docker build -t registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}"
-
-      - name: Install doctl
-        if: ${{ env.container_exists }} == '0'
-        uses: digitalocean/action-doctl@v2
-        with:
-          token: ${{ secrets.DOCKER_LOGIN }}
 
       - name: Push image to DO Container Registry
         if: ${{ env.container_exists }} == '0'
