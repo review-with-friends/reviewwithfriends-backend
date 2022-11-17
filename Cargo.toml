@@ -16,4 +16,5 @@ rand = "0.8.5"
 actix-web = "4.2.1"
 actix-rt = "2.7.0"
 tokio = "1.21.2"
+openssl = "0.10.42"
 futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
