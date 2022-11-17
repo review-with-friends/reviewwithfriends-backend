@@ -14,6 +14,9 @@ ENV DB_CONNECTION=$DB_CONNECTION
 ENV SPACES_KEY=$SPACES_KEY
 ENV SPACES_SECRET=$SPACES_SECRET
 
+RUN apt-get update
+RUN apt-get install ca-certificates -y
+RUN update-ca-certificates
 
 # Copy our build
 COPY ./target/release/bout-backend ./
