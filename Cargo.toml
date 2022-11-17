@@ -1,6 +1,6 @@
 [package]
 name = "bout-backend"
-version = "0.1.0"
+version = "0.1.0-alpha"
 edition = "2021"
 
 [dependencies]
@@ -17,4 +17,3 @@ actix-web = "4.2.1"
 actix-rt = "2.7.0"
 tokio = "1.21.2"
 futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
-openssl = { version = "0.10.42", features = ["vendored"] }
