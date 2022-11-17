@@ -9,11 +9,12 @@ jwt = { path = "./lib/jwt" }
 images = { path = "./lib/images" }
 sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "chrono", "mysql"] }
 serde = { version = "1.0.137", features = ["derive"] }
-reqwest =  { version = "0.11.12", default-features = false, features = ["rustls-tls"] }
+reqwest =  "0.11.12"
 chrono = { version  = "0.4.19", features = ["serde"] }
 uuid = { version  = "1.2.0", features = ["v4"] }
 rand = "0.8.5"
-actix-web = { versions = "4.2.1", features = ["rustls"] }
+actix-web = "4.2.1"
 actix-rt = "2.7.0"
 tokio = "1.21.2"
 futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
+openssl = { version = "0.10.42", features = ["vendored"] }
