@@ -13,24 +13,36 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+
       - name: Get Crate Version
         id: crate-version
         uses: colathro/crate-version@1.0.0
         with:
           file: "./Cargo.toml"
-      - name:
-        run: echo ${{ steps.crate-version.outputs.version }}
+
       - name: Build
         run: cargo build --release
+
       - name: Test Validation
         run: cargo test -p validation --release
+
+      - name: Log in to DO Container Registry
+        run: doctl registry login
+
+      - name: Fail if Container Exists
+        id: container_exists
+        run: docker manifest inspect registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} > /dev/null ; echo container_exists=$? >> $GITHUB_ENV
+
       - name: Build image
-        run: docker build -t registry.digitalocean.com/spacedoglabs/backends:bout . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}"
+        if: ${{ env.container_exists }} == '0'
+        run: docker build -t registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}"
+
       - name: Install doctl
+        if: ${{ env.container_exists }} == '0'
         uses: digitalocean/action-doctl@v2
         with:
           token: ${{ secrets.DOCKER_LOGIN }}
-      - name: Log in to DO Container Registry
-        run: doctl registry login --expiry-seconds 600
+
       - name: Push image to DO Container Registry
-        run: docker push registry.digitalocean.com/spacedoglabs/backends:bout
+        if: ${{ env.container_exists }} == '0'
+        run: docker push registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}}
