@@ -13,8 +13,7 @@ reqwest =  { version = "0.11.12", default-features = false, features = ["rustls-
 chrono = { version  = "0.4.19", features = ["serde"] }
 uuid = { version  = "1.2.0", features = ["v4"] }
 rand = "0.8.5"
-actix-web = "4.2.1"
+actix-web = { versions = "4.2.1", features = ["rustls"] }
 actix-rt = "2.7.0"
 tokio = "1.21.2"
-openssl = "0.10.42"
 futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
