@@ -59,7 +59,7 @@ jobs:
       - name: Set up kubectl
         uses: matootie/dokube@v1.4.0
         with:
-          personalAccessToken: ${{ secrets.DIGITAL_OCEAN }}
+          personalAccessToken: ${{ secrets.DOCKER_LOGIN }}
           clusterName: spacedoglabs
 
       - name: Get nodes
