@@ -37,24 +37,24 @@ jobs:
       - name: Check if Version Already Exists in Container Registry
         id: version-exists
         continue-on-error: true
-        run: docker manifest inspect registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} > /dev/null | echo "container_exists=$?" >> $GITHUB_ENV
+        run: docker manifest inspect registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} > /dev/null || echo "container_exists=$?" >> $GITHUB_ENV
 
       - name: Build image
         run: |
-          if echo ${{ env.container_exists  == '0' }} | grep -c "true"
+          if echo ${{ env.container_exists  == '1' }} | grep -c "true"
           then
-            echo "Skipped Building an Image. Image was found."
-          else
             docker build -t registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}} . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}"
+          else
+            echo "Skipped Building an Image. Image was found."
           fi
 
       - name: Push image to DO Container Registry
         run: |
-          if echo ${{ env.container_exists  == '0' }} | grep -c "true"
+          if echo ${{ env.container_exists  == '1' }} | grep -c "true"
           then
-            echo "Skipped Building an Image. Image was found."  
-          else
             docker push registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}}
+          else
+            echo "Skipped Building an Image. Image was found."  
           fi
 
       - name: Set up kubectl
@@ -65,9 +65,9 @@ jobs:
 
       - name: Get nodes
         run: |
-          if echo ${{ env.container_exists  == '0' }} | grep -c "true"
+          if echo ${{ env.container_exists  == '1' }} | grep -c "true"
           then
-            echo "Skipped updating deployed image."
-          else
             kubectl set image deployment/bout-deployment backend=registry.digitalocean.com/spacedoglabs/backends:bout-${{steps.crate-version.outputs.version}}
+          else
+            echo "Skipped updating deployed image."
           fi
