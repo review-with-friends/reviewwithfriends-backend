@@ -12,7 +12,7 @@ use tokio::io::AsyncReadExt;
 
 use crate::db::get_ping;
 
-use images::{ByteStream, GetObjectError, GetObjectRequest, PutObjectRequest, S3Client, S3};
+use images::{ByteStream, GetObjectRequest, PutObjectRequest, S3Client, S3};
 
 const PING_ID: &str = "123";
 
@@ -47,12 +47,13 @@ pub async fn pic(
 
     let mut buf: Vec<u8> = Vec::new();
 
-    let object = get_output
+    get_output
         .body
         .unwrap()
         .into_async_read()
         .read_to_end(&mut buf)
-        .await;
+        .await
+        .unwrap();
 
     Ok(HttpResponse::Ok()
         .content_type(ContentType::jpeg())

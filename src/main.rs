@@ -5,7 +5,10 @@ use actix_web::{
 
 use auth_routes::*;
 use authorization::Authorization;
-use friend_routes::*;
+use friend_v1::{
+    accept_friend, add_friend, cancel_friend, decline_friend, get_friends, get_ignored_friends,
+    get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
+};
 use images::create_client;
 use jwt::{encode_jwt_secret, SigningKeys};
 use ping_routes::{pic, ping, upload_pic};
@@ -15,7 +18,7 @@ use std::env;
 mod auth_routes;
 mod authorization;
 mod db;
-mod friend_routes;
+mod friend_v1;
 mod ping_routes;
 
 #[derive(Clone)]
@@ -55,14 +58,15 @@ async fn main() -> std::io::Result<()> {
                     web::scope("/v1").service(
                         web::scope("/friends")
                             .service(get_friends)
-                            .service(get_outgoing_requests)
-                            .service(get_incoming_requests)
-                            .service(get_incoming_ignored_requests)
-                            .service(send_request)
-                            .service(accept_request)
-                            .service(cancel_request)
-                            .service(decline_request)
-                            .service(remove_friend),
+                            .service(get_outgoing_friends)
+                            .service(get_incoming_friends)
+                            .service(get_ignored_friends)
+                            .service(add_friend)
+                            .service(accept_friend)
+                            .service(cancel_friend)
+                            .service(decline_friend)
+                            .service(remove_friend)
+                            .service(ignore_friend),
                     ),
                 ),
             )
