@@ -10,29 +10,35 @@ use crate::{
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
     post,
-    web::Data,
+    web::{Data, Query},
     HttpResponse, Responder, Result,
 };
 use chrono::Utc;
 use jwt::mint_jwt;
 use rand::Rng;
 use reqwest::{ClientBuilder, StatusCode};
+use serde::Deserialize;
 use sqlx::MySqlPool;
 use uuid::Uuid;
 use validation;
 
-#[post("/requestcode?<phone>")]
+#[derive(Deserialize)]
+pub struct RequestCodeRequest {
+    phone: String,
+}
+
+#[post("/requestcode")]
 pub async fn request_code(
     pool: Data<MySqlPool>,
     config: Data<Config>,
-    phone: String,
+    request_code_request: Query<RequestCodeRequest>,
 ) -> Result<impl Responder> {
-    let valid_phone = validation::validate_phone(&phone);
+    let valid_phone = validation::validate_phone(&request_code_request.phone);
     if let Err(phone_err) = valid_phone {
         return Err(ErrorBadRequest(phone_err));
     }
 
-    let phoneauths_res = get_current_phoneauths(&pool, &phone).await;
+    let phoneauths_res = get_current_phoneauths(&pool, &request_code_request.phone).await;
 
     match phoneauths_res {
         Ok(phoneauths) => {
@@ -43,7 +49,7 @@ pub async fn request_code(
         Err(_) => return Err(ErrorInternalServerError("unable to fetch auths")),
     }
 
-    let user_res = get_user_by_phone(&pool, &phone).await;
+    let user_res = get_user_by_phone(&pool, &request_code_request.phone).await;
 
     let existing_user: User;
 
@@ -56,7 +62,7 @@ pub async fn request_code(
                     id: Uuid::new_v4().to_string(),
                     name: get_new_user_name(),
                     display_name: "".to_string(),
-                    phone: phone.to_string(),
+                    phone: request_code_request.phone.to_string(),
                     created: Utc::now().naive_utc(),
                     pic_id: "".to_string(),
                 };
@@ -94,29 +100,34 @@ pub async fn request_code(
     }
 }
 
-#[post("/signin?<code>&<phone>")]
+#[derive(Deserialize)]
+pub struct SignInRequest {
+    phone: String,
+    code: String,
+}
+
+#[post("/signin")]
 pub async fn sign_in(
     config: Data<Config>,
     pool: Data<MySqlPool>,
-    code: String,
-    phone: String,
+    sign_in_request: Query<SignInRequest>,
 ) -> Result<impl Responder> {
-    let valid_phone = validation::validate_phone(&phone);
+    let valid_phone = validation::validate_phone(&sign_in_request.phone);
     if let Err(phone_err) = valid_phone {
         return Err(ErrorBadRequest(phone_err.to_string()));
     }
 
-    let valid_code = validation::validate_code(&code);
+    let valid_code = validation::validate_code(&sign_in_request.code);
     if let Err(code_err) = valid_code {
         return Err(ErrorBadRequest(code_err.to_string()));
     }
 
-    let create_authattempt_res = create_authattempt(&pool, &phone).await;
+    let create_authattempt_res = create_authattempt(&pool, &sign_in_request.phone).await;
     if let Err(_) = create_authattempt_res {
         return Err(ErrorInternalServerError("unable to start auth attempt"));
     }
 
-    let phone_auth_attemps_res = get_phoneauth_attempts(&pool, &phone).await;
+    let phone_auth_attemps_res = get_phoneauth_attempts(&pool, &sign_in_request.phone).await;
     if let Ok(phone_auth_attempts) = phone_auth_attemps_res {
         if phone_auth_attempts.len() >= 4 {
             return Err(ErrorBadRequest("too many auth attempts"));
@@ -125,7 +136,7 @@ pub async fn sign_in(
         return Err(ErrorInternalServerError("unable to get auth attempts"));
     }
 
-    let phone_auth_res = get_current_phoneauths(&pool, &phone).await;
+    let phone_auth_res = get_current_phoneauths(&pool, &sign_in_request.phone).await;
     let phone_auths: Vec<PhoneAuth>;
     if let Ok(phone_auths_tmp) = phone_auth_res {
         phone_auths = phone_auths_tmp;
@@ -135,12 +146,12 @@ pub async fn sign_in(
 
     let matched_phoneauth = phone_auths
         .iter()
-        .filter(|ar| ar.code == code)
+        .filter(|ar| ar.code == sign_in_request.code)
         .collect::<Vec<&PhoneAuth>>();
 
     if matched_phoneauth.len() == 1 {
         let user: User;
-        let user_res = get_user_by_phone(&pool, &phone).await;
+        let user_res = get_user_by_phone(&pool, &sign_in_request.phone).await;
         if let Ok(user_opt) = user_res {
             if let Some(user_tmp) = user_opt {
                 user = user_tmp;
