@@ -1,11 +1,10 @@
 use async_trait::async_trait;
-
 pub use rusoto_core::{ByteStream, HttpClient};
 use rusoto_credential::{AwsCredentials, ProvideAwsCredentials};
 pub use rusoto_s3::*;
 use rusoto_signature::Region;
 
-pub fn create_client(key: &str, secret: &str) -> S3Client {
+pub fn create_s3_client(key: &str, secret: &str) -> S3Client {
     S3Client::new_with(
         HttpClient::new().unwrap(),
         DOCredentials {

@@ -9,8 +9,9 @@ use friend_v1::{
     accept_friend, add_friend, cancel_friend, decline_friend, get_friends, get_ignored_friends,
     get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
 };
-use images::create_client;
+use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
+use pic_v1::get_profile_pic;
 use ping_routes::{pic, ping, upload_pic};
 use sqlx::MySqlPool;
 use std::env;
@@ -19,6 +20,7 @@ mod auth_routes;
 mod authorization;
 mod db;
 mod friend_v1;
+mod pic_v1;
 mod ping_routes;
 
 #[derive(Clone)]
@@ -38,7 +40,7 @@ async fn main() -> std::io::Result<()> {
         .await
         .unwrap();
 
-    let client = create_client(&config.spaces_key, &config.spaces_secret);
+    let client = create_s3_client(&config.spaces_key, &config.spaces_secret);
 
     HttpServer::new(move || {
         App::new()
@@ -55,19 +57,21 @@ async fn main() -> std::io::Result<()> {
             .service(web::scope("/auth").service(request_code).service(sign_in))
             .service(
                 web::scope("/api").service(
-                    web::scope("/v1").service(
-                        web::scope("/friends")
-                            .service(get_friends)
-                            .service(get_outgoing_friends)
-                            .service(get_incoming_friends)
-                            .service(get_ignored_friends)
-                            .service(add_friend)
-                            .service(accept_friend)
-                            .service(cancel_friend)
-                            .service(decline_friend)
-                            .service(remove_friend)
-                            .service(ignore_friend),
-                    ),
+                    web::scope("/v1")
+                        .service(
+                            web::scope("/friends")
+                                .service(get_friends)
+                                .service(get_outgoing_friends)
+                                .service(get_incoming_friends)
+                                .service(get_ignored_friends)
+                                .service(add_friend)
+                                .service(accept_friend)
+                                .service(cancel_friend)
+                                .service(decline_friend)
+                                .service(remove_friend)
+                                .service(ignore_friend),
+                        )
+                        .service(web::scope("/pic").service(get_profile_pic)),
                 ),
             )
     })

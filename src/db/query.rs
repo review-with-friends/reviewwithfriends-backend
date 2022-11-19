@@ -1,7 +1,7 @@
 use chrono::Duration;
 use sqlx::{types::chrono::Utc, Error, MySqlPool, Row};
 
-use super::{AuthAttempt, Friend, FriendRequest, PhoneAuth, User};
+use super::{AuthAttempt, Friend, FriendRequest, PhoneAuth, Pic, User};
 
 pub async fn get_ping(client: &MySqlPool, id: &str) -> Result<String, Error> {
     let row = sqlx::query("SELECT * FROM ping where id = ?")
@@ -12,14 +12,14 @@ pub async fn get_ping(client: &MySqlPool, id: &str) -> Result<String, Error> {
     return Ok(row.try_get("id")?);
 }
 
-/* pub async fn get_user(client: &MySqlPool, id: String) -> Result<User, Error> {
+pub async fn get_user(client: &MySqlPool, id: &str) -> Result<User, Error> {
     let row = sqlx::query("SELECT * FROM user where id = ?")
         .bind(id)
-        .fetch_one(&client.0)
+        .fetch_one(client)
         .await?;
 
     return Ok((&row).into());
-} */
+}
 
 pub async fn does_user_exist(client: &MySqlPool, id: &str) -> Result<bool, Error> {
     let row = sqlx::query("SELECT * FROM user where id = ?")
@@ -125,4 +125,13 @@ pub async fn get_current_friends(client: &MySqlPool, user_id: &str) -> Result<Ve
     let out: Vec<Friend> = rows.iter().map(|row| row.into()).collect();
 
     return Ok(out);
+}
+
+pub async fn get_pic(client: &MySqlPool, id: &str) -> Result<Pic, Error> {
+    let row = sqlx::query("SELECT * FROM pic where id = ?")
+        .bind(id)
+        .fetch_one(client)
+        .await?;
+
+    return Ok((&row).into());
 }

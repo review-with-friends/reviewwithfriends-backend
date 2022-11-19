@@ -16,6 +16,10 @@ pub struct User {
 
     /// Datetime the user was created.
     pub created: NaiveDateTime,
+
+    /// Id of the profile image pic.
+    /// Used to find avatar image.
+    pub pic_id: String,
 }
 
 impl From<&MySqlRow> for User {
@@ -26,6 +30,7 @@ impl From<&MySqlRow> for User {
             display_name: row.get("display_name"),
             phone: row.get("phone"),
             created: row.get("created"),
+            pic_id: row.get("pic_id"),
         }
     }
 }
@@ -141,6 +146,29 @@ impl From<&MySqlRow> for FriendRequest {
             user_id: row.get("user_id"),
             friend_id: row.get("friend_id"),
             ignored: row.get("ignored"),
+        }
+    }
+}
+
+/// Represents an uploaded image.
+pub struct Pic {
+    /// Guid unique identifier.
+    pub id: String,
+
+    /// Datetime the request was made.
+    pub created: NaiveDateTime,
+
+    /// The handler used to fetch/create the image.
+    /// The handler must use the id to find the image.
+    pub pic_handler: u8,
+}
+
+impl From<&MySqlRow> for Pic {
+    fn from(row: &MySqlRow) -> Pic {
+        Pic {
+            id: row.get("id"),
+            created: row.get("created"),
+            pic_handler: row.get("pic_handler"),
         }
     }
 }
