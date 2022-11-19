@@ -32,7 +32,7 @@ pub async fn request_code(
     pool: Data<MySqlPool>,
     config: Data<Config>,
     request_code_request: Query<RequestCodeRequest>,
-) -> Result<impl Responder> {
+) -> Result<HttpResponse> {
     let valid_phone = validation::validate_phone(&request_code_request.phone);
     if let Err(phone_err) = valid_phone {
         return Err(ErrorBadRequest(phone_err));
@@ -95,8 +95,8 @@ pub async fn request_code(
     let auth_res = send_auth(&config.twilio_key, &existing_user.phone, &auth_code).await;
 
     match auth_res {
-        Ok(_) => Ok(HttpResponse::Ok()),
-        Err(_) => Ok(HttpResponse::InternalServerError()),
+        Ok(_) => Ok(HttpResponse::Ok().finish()),
+        Err(err) => Ok(HttpResponse::InternalServerError().body(err.to_string())),
     }
 }
 
@@ -208,7 +208,7 @@ async fn send_auth(twilio_secret: &String, phone: &str, code: &str) -> Result<()
                 response.status()
             )),
         },
-        Err(_) => Err("twilio send failed".to_string()),
+        Err(err) => Err(err.to_string()),
     }
 }
 
