@@ -12,7 +12,7 @@ use friend_v1::{
 use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
 use pic_v1::{add_profile_pic, get_profile_pic};
-use ping_routes::{pic, ping, upload_pic};
+use ping_routes::ping;
 use sqlx::MySqlPool;
 use std::env;
 
@@ -50,12 +50,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(pool.clone()))
             .app_data(Data::new(client.clone()))
             .wrap(Authorization)
-            .service(
-                web::scope("/ping")
-                    .service(ping)
-                    .service(pic)
-                    .service(upload_pic),
-            )
+            .service(web::scope("/ping").service(ping))
             .service(web::scope("/auth").service(request_code).service(sign_in))
             .service(
                 web::scope("/api").service(
