@@ -1,5 +1,5 @@
 use actix_web::{
-    web::{self, Data},
+    web::{self, Data, PayloadConfig},
     App, HttpServer,
 };
 
@@ -11,7 +11,7 @@ use friend_v1::{
 };
 use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
-use pic_v1::get_profile_pic;
+use pic_v1::{add_profile_pic, get_profile_pic};
 use ping_routes::{pic, ping, upload_pic};
 use sqlx::MySqlPool;
 use std::env;
@@ -31,6 +31,8 @@ pub struct Config {
     spaces_key: String,
     spaces_secret: String,
 }
+
+const PIC_CONFIG_LIMIT: usize = 2_262_144;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -71,7 +73,12 @@ async fn main() -> std::io::Result<()> {
                                 .service(remove_friend)
                                 .service(ignore_friend),
                         )
-                        .service(web::scope("/pic").service(get_profile_pic)),
+                        .service(
+                            web::scope("/pic")
+                                .service(get_profile_pic)
+                                .service(add_profile_pic),
+                        )
+                        .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT)),
                 ),
             )
     })

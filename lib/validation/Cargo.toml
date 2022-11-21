@@ -2,3 +2,6 @@
 name = "validation"
 version = "0.1.0"
 edition = "2021"
+
+[dependencies]
+jpeg-decoder = "0.3.0"

@@ -1,17 +1,21 @@
+use images::DEFAULT_PIC_ID;
 use sqlx::{types::chrono::Utc, Error, MySqlPool};
 use uuid::Uuid;
 
-use super::{Friend, User};
+use super::{Friend, Pic, User};
 
 pub async fn create_user(client: &MySqlPool, user: &User) -> Result<(), Error> {
-    sqlx::query("INSERT INTO user (id, name, display_name, phone, created) VALUES (?,?,?,?,?)")
-        .bind(&user.id)
-        .bind(&user.name)
-        .bind(&user.display_name)
-        .bind(&user.phone)
-        .bind(&user.created)
-        .execute(client)
-        .await?;
+    sqlx::query(
+        "INSERT INTO user (id, name, display_name, phone, created, pic_id) VALUES (?,?,?,?,?,?)",
+    )
+    .bind(&user.id)
+    .bind(&user.name)
+    .bind(&user.display_name)
+    .bind(&user.phone)
+    .bind(&user.created)
+    .bind(DEFAULT_PIC_ID)
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -192,6 +196,46 @@ pub async fn remove_current_friend(
         .await?;
 
     trans.commit().await?;
+
+    return Ok(());
+}
+
+pub async fn create_pic(client: &MySqlPool) -> Result<Pic, Error> {
+    let pic = Pic {
+        id: Uuid::new_v4().to_string(),
+        created: Utc::now().naive_utc(),
+        pic_handler: 1,
+    };
+
+    sqlx::query("INSERT INTO pic (id, created, pic_handler) VALUES (?,?,?)")
+        .bind(&pic.id)
+        .bind(&pic.created)
+        .bind(&pic.pic_handler)
+        .execute(client)
+        .await?;
+
+    return Ok(pic);
+}
+
+pub async fn update_user_pic_id(
+    client: &MySqlPool,
+    pic_id: &str,
+    user_id: &str,
+) -> Result<(), Error> {
+    sqlx::query("UPDATE user SET pic_id = ? WHERE id = ?")
+        .bind(pic_id)
+        .bind(user_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn delete_pic(client: &MySqlPool, pic_id: &str) -> Result<(), Error> {
+    sqlx::query("DELETE FROM pic WHERE id = ?")
+        .bind(pic_id)
+        .execute(client)
+        .await?;
 
     return Ok(());
 }

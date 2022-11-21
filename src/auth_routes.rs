@@ -178,6 +178,7 @@ pub async fn sign_in(
     }
 }
 
+/// TODO: Shared HTTPClient Pool and just make this better.
 async fn send_auth(twilio_secret: &String, phone: &str, code: &str) -> Result<(), String> {
     let request_url = "https://api.twilio.com/2010-04-01/Accounts/AC0094c61aa39fc9c673130f6e28e43bad/Messages.json";
 
@@ -201,14 +202,14 @@ async fn send_auth(twilio_secret: &String, phone: &str, code: &str) -> Result<()
 
     match response_res {
         Ok(response) => match response.status() {
-            StatusCode::OK => Ok(()),
+            StatusCode::CREATED => Ok(()),
             _ => Err(format!(
                 "{} {}",
                 "twilio send failed with status".to_string(),
                 response.status()
             )),
         },
-        Err(err) => Err(err.to_string()),
+        Err(_) => Err("phone message failed".to_string()),
     }
 }
 

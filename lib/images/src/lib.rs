@@ -4,6 +4,8 @@ use rusoto_credential::{AwsCredentials, ProvideAwsCredentials};
 pub use rusoto_s3::*;
 use rusoto_signature::Region;
 
+pub const DEFAULT_PIC_ID: &str = "default";
+
 pub fn create_s3_client(key: &str, secret: &str) -> S3Client {
     S3Client::new_with(
         HttpClient::new().unwrap(),

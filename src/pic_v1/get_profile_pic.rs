@@ -29,14 +29,14 @@ pub async fn get_profile_pic(
     if let Ok(user) = get_user(&pool, &avatar_request.user_id).await {
         pic_id = user.pic_id;
     } else {
-        return Ok(HttpResponse::BadRequest().body("user not found"));
+        return Ok(HttpResponse::NotFound().body("user not found"));
     }
 
     let pic: Pic;
     if let Ok(pic_) = get_pic(&pool, &pic_id).await {
         pic = pic_;
     } else {
-        return Ok(HttpResponse::BadRequest().body("pic not found"));
+        return Ok(HttpResponse::NotFound().body("pic not found"));
     }
 
     let pic_obj: GetObjectOutput;
@@ -50,7 +50,7 @@ pub async fn get_profile_pic(
     {
         pic_obj = pic_obj_;
     } else {
-        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic"));
+        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic from db"));
     }
 
     let mut buf: Vec<u8> = Vec::new();
@@ -62,7 +62,7 @@ pub async fn get_profile_pic(
         .read_to_end(&mut buf)
         .await
     {
-        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic"));
+        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic from storage"));
     }
 
     Ok(HttpResponse::Ok()

@@ -1,3 +1,5 @@
+use jpeg_decoder::Decoder;
+
 /// All issued codes are exactly 9 in length and contain
 /// no non-ascii characters.
 ///
@@ -70,4 +72,32 @@ pub fn validate_phone(phone: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+pub fn validate_profile_pic(bytes: &[u8]) -> Result<(), String> {
+    if bytes.len() > 250_000 {
+        return Err("pic too large".to_string());
+    }
+
+    let mut decoder = Decoder::new(bytes);
+    let decode_res = decoder.decode();
+
+    match decode_res {
+        Ok(_) => {
+            if let Some(metadata) = decoder.info() {
+                if metadata.height > 500 {
+                    return Err("image too tall".to_string());
+                }
+
+                if metadata.width > 500 {
+                    return Err("image too wide".to_string());
+                }
+
+                return Ok(());
+            } else {
+                return Err("metadata unreadable".to_string());
+            }
+        }
+        Err(_) => return Err("unable to decode pic".to_string()),
+    }
 }

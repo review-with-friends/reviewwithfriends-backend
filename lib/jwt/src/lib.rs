@@ -15,8 +15,7 @@ struct Claims {
 pub fn mint_jwt(keys: &SigningKeys, id: &str) -> String {
     let claims = Claims {
         aud: "mob".to_string(),
-        // 28 day expiry
-        exp: Utc::now().timestamp() as usize + 2419200 as usize,
+        exp: Utc::now().timestamp() as usize + 432000000 as usize,
         sub: id.to_string(),
     };
 
