@@ -1,18 +1,13 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{
-        cancel_friend_request, create_pic, get_outgoing_friend_requests, get_user,
-        update_user_pic_id,
-    },
+    db::{create_pic, get_user, update_user_pic_id},
 };
 use actix_web::{
-    error::{ErrorBadRequest, ErrorInternalServerError},
     post,
-    web::{Bytes, Data, Query, ReqData},
+    web::{Bytes, Data, ReqData},
     HttpResponse, Result,
 };
-use images::{ByteStream, PutObjectRequest, S3Client, DEFAULT_PIC_ID, S3};
-use serde::Deserialize;
+use images::{ByteStream, PutObjectRequest, S3Client, S3};
 use sqlx::MySqlPool;
 use validation::validate_profile_pic;
 

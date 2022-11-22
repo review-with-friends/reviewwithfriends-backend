@@ -8,7 +8,7 @@ pub async fn best_effort_delete_pic(s3_client: &S3Client, pool: &MySqlPool, pic_
         return; // dont cleanup our default image :D
     }
 
-    if let Ok(delete_pic_storage) = s3_client
+    if let Ok(_) = s3_client
         .delete_object(DeleteObjectRequest {
             bucket: "bout".to_string(),
             key: pic_id.to_string(),
@@ -16,6 +16,6 @@ pub async fn best_effort_delete_pic(s3_client: &S3Client, pool: &MySqlPool, pic_
         })
         .await
     {
-        let delete_pic_res = delete_pic(pool, pic_id).await;
+        let _delete_pic_res = delete_pic(pool, pic_id).await;
     }
 }

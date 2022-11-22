@@ -2,7 +2,6 @@ use actix_web::{
     web::{self, Data, PayloadConfig},
     App, HttpServer,
 };
-
 use auth_routes::*;
 use authorization::Authorization;
 use friend_v1::{
@@ -11,10 +10,17 @@ use friend_v1::{
 };
 use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
+use opentelemetry::sdk::{
+    export::trace::stdout,
+    trace::{self, Sampler},
+    Resource,
+};
+use opentelemetry::KeyValue;
+use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, get_profile_pic};
 use ping_routes::ping;
 use sqlx::MySqlPool;
-use std::env;
+use std::{collections::HashMap, env};
 
 mod auth_routes;
 mod authorization;
@@ -30,6 +36,7 @@ pub struct Config {
     signing_keys: SigningKeys,
     spaces_key: String,
     spaces_secret: String,
+    newrelic_key: String,
 }
 
 const PIC_CONFIG_LIMIT: usize = 2_262_144;
@@ -43,6 +50,8 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
 
     let client = create_s3_client(&config.spaces_key, &config.spaces_secret);
+
+    setup_tracing(&config);
 
     HttpServer::new(move || {
         App::new()
@@ -88,10 +97,11 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:55324/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:49581/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),
+            newrelic_key: String::from("Default"),
         },
         Err(_) => Config {
             twilio_key: env::var("TWILIO").unwrap(),
@@ -99,6 +109,7 @@ fn build_config() -> Config {
             signing_keys: encode_jwt_secret(&env::var("JWT_KEY").unwrap()),
             spaces_key: env::var("SPACES_KEY").unwrap(),
             spaces_secret: env::var("SPACES_SECRET").unwrap(),
+            newrelic_key: env::var("NR_KEY").unwrap(),
         },
     }
 }
@@ -109,5 +120,34 @@ fn build_binding() -> (&'static str, u16) {
     match is_dev {
         Ok(_) => ("127.0.0.1", 8081),
         Err(_) => ("0.0.0.0", 80),
+    }
+}
+
+fn setup_tracing(config: &Config) {
+    if config.newrelic_key != String::from("Default") {
+        let mut nr_otlp_metadata: HashMap<String, String> = HashMap::new();
+        nr_otlp_metadata.insert("api-key".to_string(), config.newrelic_key.clone());
+
+        opentelemetry_otlp::new_pipeline()
+            .tracing()
+            .with_exporter(
+                opentelemetry_otlp::HttpExporterBuilder::default()
+                    .with_endpoint("https://otlp.nr-data.net/v1/traces")
+                    .with_headers(nr_otlp_metadata),
+            )
+            .with_trace_config(
+                trace::config()
+                    .with_sampler(Sampler::AlwaysOn)
+                    .with_resource(Resource::new(vec![KeyValue::new(
+                        "service.name",
+                        "bout-backend",
+                    )])),
+            )
+            .install_batch(opentelemetry::runtime::Tokio)
+            .unwrap();
+    } else {
+        stdout::new_pipeline()
+            .with_trace_config(trace::config().with_sampler(Sampler::AlwaysOn))
+            .install_simple();
     }
 }

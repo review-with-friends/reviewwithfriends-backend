@@ -1,18 +1,6 @@
-use actix_web::{
-    error::ErrorInternalServerError,
-    get,
-    http::header::ContentType,
-    post,
-    web::{Bytes, Data, Query},
-    HttpResponse, Responder, Result,
-};
-use serde::Deserialize;
-use sqlx::MySqlPool;
-use tokio::io::AsyncReadExt;
-
 use crate::db::get_ping;
-
-use images::{ByteStream, GetObjectRequest, PutObjectRequest, S3Client, S3};
+use actix_web::{error::ErrorInternalServerError, get, web::Data, HttpResponse, Responder, Result};
+use sqlx::MySqlPool;
 
 const PING_ID: &str = "123";
 

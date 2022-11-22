@@ -15,6 +15,10 @@ use actix_web::{
 };
 use chrono::Utc;
 use jwt::mint_jwt;
+use opentelemetry::{
+    global,
+    trace::{Span, Status, Tracer},
+};
 use rand::Rng;
 use reqwest::{ClientBuilder, StatusCode};
 use serde::Deserialize;
@@ -92,11 +96,20 @@ pub async fn request_code(
         }
     }
 
+    let tracer = global::tracer("phone auth request");
+    let mut span = tracer.start("twilio call");
+
     let auth_res = send_auth(&config.twilio_key, &existing_user.phone, &auth_code).await;
 
     match auth_res {
-        Ok(_) => Ok(HttpResponse::Ok().finish()),
-        Err(err) => Ok(HttpResponse::InternalServerError().body(err.to_string())),
+        Ok(_) => {
+            span.end();
+            Ok(HttpResponse::Ok().finish())
+        }
+        Err(err) => {
+            span.set_status(Status::error(err.clone()));
+            return Ok(HttpResponse::InternalServerError().body(err.to_string()));
+        }
     }
 }
 
