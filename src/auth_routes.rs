@@ -62,10 +62,11 @@ pub async fn request_code(
             if let Some(user) = user_opt {
                 existing_user = user;
             } else {
+                let new_username = get_new_user_name();
                 existing_user = User {
                     id: Uuid::new_v4().to_string(),
-                    name: get_new_user_name(),
-                    display_name: "".to_string(),
+                    name: new_username.clone(),
+                    display_name: new_username.clone(),
                     phone: request_code_request.phone.to_string(),
                     created: Utc::now().naive_utc(),
                     pic_id: "".to_string(),

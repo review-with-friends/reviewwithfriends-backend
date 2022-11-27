@@ -2,7 +2,7 @@ use images::DEFAULT_PIC_ID;
 use sqlx::{types::chrono::Utc, Error, MySqlPool};
 use uuid::Uuid;
 
-use super::{Friend, Pic, User};
+use super::{Friend, Pic, Review, User};
 
 pub async fn create_user(client: &MySqlPool, user: &User) -> Result<(), Error> {
     sqlx::query(
@@ -234,6 +234,173 @@ pub async fn update_user_pic_id(
 pub async fn delete_pic(client: &MySqlPool, pic_id: &str) -> Result<(), Error> {
     sqlx::query("DELETE FROM pic WHERE id = ?")
         .bind(pic_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn create_review(client: &MySqlPool, review: &Review) -> Result<(), Error> {
+    sqlx::query(
+        "INSERT INTO review 
+        (id, user_id, created, pic_id, text, stars, location_name, latitude, longitude, is_custom, category) 
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+    )
+    .bind(&review.id)
+    .bind(&review.user_id)
+    .bind(&review.created)
+    .bind(&review.pic_id)
+    .bind(&review.text)
+    .bind(&review.stars)
+    .bind(&review.location_name)
+    .bind(&review.latitude)
+    .bind(&review.longitude)
+    .bind(&review.is_custom)
+    .bind(&review.category)
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
+
+pub async fn update_review_pic_id(
+    client: &MySqlPool,
+    pic_id: &str,
+    review_id: &str,
+) -> Result<(), Error> {
+    sqlx::query("UPDATE review SET pic_id = ? WHERE id = ?")
+        .bind(pic_id)
+        .bind(review_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn remove_review_pic_id(client: &MySqlPool, review_id: &str) -> Result<(), Error> {
+    const NULL: Option<String> = None;
+    sqlx::query("UPDATE review SET pic_id = ? WHERE id = ?")
+        .bind(NULL)
+        .bind(review_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn create_like(client: &MySqlPool, user_id: &str, review_id: &str) -> Result<(), Error> {
+    sqlx::query(
+        "INSERT INTO likes 
+        (id, created, user_id, review_id)
+        VALUES (?,?,?,?)",
+    )
+    .bind(Uuid::new_v4().to_string())
+    .bind(Utc::now().naive_utc())
+    .bind(user_id)
+    .bind(review_id)
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
+
+pub async fn remove_like(client: &MySqlPool, user_id: &str, review_id: &str) -> Result<(), Error> {
+    sqlx::query("DELETE FROM likes where user_id = ? and review_id = ?")
+        .bind(user_id)
+        .bind(review_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn remove_review_and_children(client: &MySqlPool, review_id: &str) -> Result<(), Error> {
+    let mut trans = client.begin().await?;
+
+    sqlx::query("DELETE FROM reply WHERE review_id = ?")
+        .bind(review_id)
+        .execute(&mut trans)
+        .await?;
+
+    sqlx::query("DELETE FROM likes WHERE review_id = ?")
+        .bind(review_id)
+        .execute(&mut trans)
+        .await?;
+
+    sqlx::query("DELETE FROM review WHERE id = ?")
+        .bind(review_id)
+        .execute(&mut trans)
+        .await?;
+
+    trans.commit().await?;
+
+    return Ok(());
+}
+
+pub async fn create_reply(
+    client: &MySqlPool,
+    user_id: &str,
+    review_id: &str,
+    text: &str,
+) -> Result<(), Error> {
+    sqlx::query(
+        "INSERT INTO reply 
+        (id, created, user_id, review_id, text)
+        VALUES (?,?,?,?,?)",
+    )
+    .bind(Uuid::new_v4().to_string())
+    .bind(Utc::now().naive_utc())
+    .bind(user_id)
+    .bind(review_id)
+    .bind(text)
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
+
+pub async fn delete_reply(
+    client: &MySqlPool,
+    reply_id: &str,
+    review_id: &str,
+    user_id: &str,
+) -> Result<(), Error> {
+    sqlx::query("DELETE FROM reply WHERE id = ? AND review_id = ? and user_id = ?")
+        .bind(reply_id)
+        .bind(review_id)
+        .bind(user_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn update_review(
+    client: &MySqlPool,
+    review_id: &str,
+    stars: u8,
+    text: &str,
+) -> Result<(), Error> {
+    sqlx::query("UPDATE review SET stars = ?, text = ? WHERE id = ?")
+        .bind(stars)
+        .bind(text)
+        .bind(review_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+pub async fn update_usernames(
+    client: &MySqlPool,
+    user_id: &str,
+    display_name: &str,
+    name: &str,
+) -> Result<(), Error> {
+    sqlx::query("UPDATE user SET display_name = ?, name = ? WHERE id = ?")
+        .bind(display_name)
+        .bind(name)
+        .bind(user_id)
         .execute(client)
         .await?;
 

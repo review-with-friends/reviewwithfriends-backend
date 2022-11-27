@@ -101,3 +101,48 @@ pub fn validate_profile_pic(bytes: &[u8]) -> Result<(), String> {
         Err(_) => return Err("unable to decode pic".to_string()),
     }
 }
+
+pub fn validate_review_pic(bytes: &[u8]) -> Result<(), String> {
+    if bytes.len() > 2_250_000 {
+        return Err("pic too large".to_string());
+    }
+
+    let mut decoder = Decoder::new(bytes);
+    let decode_res = decoder.decode();
+
+    match decode_res {
+        Ok(_) => {
+            if let Some(metadata) = decoder.info() {
+                if metadata.height > 3000 {
+                    return Err("image too tall".to_string());
+                }
+
+                if metadata.width > 4000 {
+                    return Err("image too wide".to_string());
+                }
+
+                return Ok(());
+            } else {
+                return Err("metadata unreadable".to_string());
+            }
+        }
+        Err(_) => return Err("unable to decode pic".to_string()),
+    }
+}
+
+/// ```
+/// assert!(validation::validate_reply_text("Test :D").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_reply_text(&"1".repeat(451)).is_err())
+/// ```
+/// ```
+/// assert!(validation::validate_reply_text(&"1".repeat(450)).is_ok())
+/// ```
+pub fn validate_reply_text(text: &str) -> Result<(), String> {
+    if text.len() > 450 {
+        return Err("text too long".to_string());
+    }
+
+    return Ok(());
+}

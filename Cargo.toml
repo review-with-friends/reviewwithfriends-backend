@@ -1,13 +1,13 @@
 [package]
 name = "bout-backend"
-version = "0.1.8-alpha"
+version = "0.2.0-alpha"
 edition = "2021"
 
 [dependencies]
 validation = { path = "./lib/validation" }
 jwt = { path = "./lib/jwt" }
 images = { path = "./lib/images" }
-sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "chrono", "mysql"] }
+sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "chrono", "mysql", "decimal"] }
 serde = { version = "1.0.137", features = ["derive"] }
 reqwest =  "0.11.12"
 chrono = { version  = "0.4.19", features = ["serde"] }

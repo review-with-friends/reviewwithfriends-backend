@@ -172,3 +172,113 @@ impl From<&MySqlRow> for Pic {
         }
     }
 }
+
+/// Represents a review for a location.
+pub struct Review {
+    /// Guid unique identifier.
+    pub id: String,
+
+    // user who made the post
+    pub user_id: String,
+
+    /// Datetime the request was made.
+    pub created: NaiveDateTime,
+
+    /// Id of the associated pic record.
+    pub pic_id: Option<String>,
+
+    // category of the review, i.e. restaurant or cafe
+    pub category: String,
+
+    // Actual review text.
+    pub text: String,
+
+    // 0 - 5 stars for review.
+    pub stars: u8,
+
+    // name of the location as per apple maps
+    pub location_name: String,
+
+    // Latitude of the reviewed location
+    pub latitude: f64,
+
+    // Longitude of the reviewed location
+    pub longitude: f64,
+
+    // custom locations
+    pub is_custom: bool,
+}
+
+impl From<&MySqlRow> for Review {
+    fn from(row: &MySqlRow) -> Review {
+        Review {
+            id: row.get("id"),
+            user_id: row.get("user_id"),
+            created: row.get("created"),
+            pic_id: row.get("pic_id"),
+            category: row.get("category"),
+            text: row.get("text"),
+            stars: row.get("stars"),
+            location_name: row.get("location_name"),
+            latitude: row.get("latitude"),
+            longitude: row.get("longitude"),
+            is_custom: row.get("is_custom"),
+        }
+    }
+}
+
+/// Represents a like for a post.
+pub struct Like {
+    /// Guid unique identifier.
+    pub id: String,
+
+    /// Datetime the like was made.
+    pub created: NaiveDateTime,
+
+    /// The user who liked the review.
+    pub user_id: String,
+
+    /// Id for the review that was liked.
+    pub review_id: String,
+}
+
+impl From<&MySqlRow> for Like {
+    fn from(row: &MySqlRow) -> Like {
+        Like {
+            id: row.get("id"),
+            created: row.get("created"),
+            user_id: row.get("user_id"),
+            review_id: row.get("review_id"),
+        }
+    }
+}
+
+/// Represents a reply to a post.
+pub struct Reply {
+    /// Guid unique identifier.
+    pub id: String,
+
+    /// Datetime the like was made.
+    pub created: NaiveDateTime,
+
+    /// The user who liked the review.
+    pub user_id: String,
+
+    // Id of the review the reply is for.
+    pub review_id: String,
+
+    /// Text for the reply.
+    pub text: String,
+}
+
+impl From<&MySqlRow> for Reply {
+    fn from(row: &MySqlRow) -> Reply {
+        Reply {
+            id: row.get("id"),
+            created: row.get("created"),
+            user_id: row.get("user_id"),
+            review_id: row.get("review_id"),
+            text: row.get("text"),
+        }
+    }
+}

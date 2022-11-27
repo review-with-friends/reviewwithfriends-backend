@@ -10,6 +10,7 @@ use friend_v1::{
 };
 use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
+use likes_v1::{get_likes, like_review, unlike_review};
 use opentelemetry::sdk::{
     export::trace::stdout,
     trace::{self, Sampler},
@@ -17,17 +18,27 @@ use opentelemetry::sdk::{
 };
 use opentelemetry::KeyValue;
 use opentelemetry_otlp::WithExportConfig;
-use pic_v1::{add_profile_pic, get_profile_pic};
+use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, get_review_pic, remove_review_pic};
 use ping_routes::ping;
+use reply_v1::{add_reply, get_replies, remove_reply};
+use review_v1::{
+    add_review, edit_review, get_latest, get_reviews_from_loc, get_reviews_from_map_bounds,
+    remove_review,
+};
 use sqlx::MySqlPool;
 use std::{collections::HashMap, env};
+use user_v1::{get_user_by_id, get_user_by_name, search_user_by_name, update_user};
 
 mod auth_routes;
 mod authorization;
 mod db;
 mod friend_v1;
+mod likes_v1;
 mod pic_v1;
 mod ping_routes;
+mod reply_v1;
+mod review_v1;
+mod user_v1;
 
 #[derive(Clone)]
 pub struct Config {
@@ -81,6 +92,37 @@ async fn main() -> std::io::Result<()> {
                             web::scope("/pic")
                                 .service(get_profile_pic)
                                 .service(add_profile_pic),
+                        )
+                        .service(
+                            web::scope("/review")
+                                .service(get_latest)
+                                .service(get_review_pic)
+                                .service(add_review_pic)
+                                .service(remove_review_pic)
+                                .service(get_reviews_from_map_bounds)
+                                .service(get_reviews_from_loc)
+                                .service(add_review)
+                                .service(remove_review)
+                                .service(edit_review),
+                        )
+                        .service(
+                            web::scope("/user")
+                                .service(search_user_by_name)
+                                .service(get_user_by_id)
+                                .service(get_user_by_name)
+                                .service(update_user),
+                        )
+                        .service(
+                            web::scope("/like")
+                                .service(get_likes)
+                                .service(like_review)
+                                .service(unlike_review),
+                        )
+                        .service(
+                            web::scope("/reply")
+                                .service(get_replies)
+                                .service(add_reply)
+                                .service(remove_reply),
                         )
                         .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT)),
                 ),
