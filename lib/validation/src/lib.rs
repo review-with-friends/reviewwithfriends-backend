@@ -36,15 +36,19 @@ pub fn validate_code(code: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// We expect phone numbers formatted like: "+1 7014910059"
+/// We expect phone numbers formatted like: "17014910059"
 ///
-/// Phone numbers must begin with +, contain a space, and contain
-/// no non-ascii characters.
+/// Phone numbers are expected in the E.164 Format with digits only.
+///
+/// We will preprend the '+' when making an auth call.
 /// ```
 /// assert!(validation::validate_phone("").is_err())
 /// ```
 /// ```
-/// assert!(validation::validate_phone("1 7014910059").is_ok())
+/// assert!(validation::validate_phone("17014910059").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_phone("1 7014910059").is_err())
 /// ```
 /// ```
 /// assert!(validation::validate_phone("44 445566").is_err())
@@ -59,16 +63,16 @@ pub fn validate_code(code: &str) -> Result<(), String> {
 /// assert!(validation::validate_phone("+44445434434").is_err())
 /// ```
 pub fn validate_phone(phone: &str) -> Result<(), String> {
-    if phone.len() != 12 {
+    if phone.len() != 11 {
         return Err("incorrect phone length".to_string());
     }
 
-    if !phone.starts_with("1 ") {
-        return Err("unsupported country phone".to_string());
+    if !phone.starts_with("1") {
+        return Err("unsupported country code".to_string());
     }
 
-    if phone.chars().filter(|&c| c == ' ').count() != 1 {
-        return Err("phone must have exactly 1 space".to_string());
+    if !phone.chars().all(|p| p.is_ascii_digit()) {
+        return Err("phone not all digits".to_string());
     }
 
     Ok(())

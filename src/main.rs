@@ -2,7 +2,7 @@ use actix_web::{
     web::{self, Data, PayloadConfig},
     App, HttpServer,
 };
-use auth_routes::*;
+use auth::*;
 use authorization::Authorization;
 use friend_v1::{
     accept_friend, add_friend, cancel_friend, decline_friend, get_friends, get_ignored_friends,
@@ -21,15 +21,16 @@ use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, get_review_pic, remove_review_pic};
 use ping_routes::ping;
 use reply_v1::{add_reply, get_replies, remove_reply};
+use reqwest::ClientBuilder;
 use review_v1::{
     add_review, edit_review, get_latest, get_reviews_from_loc, get_reviews_from_map_bounds,
     remove_review,
 };
 use sqlx::MySqlPool;
-use std::{collections::HashMap, env};
+use std::{collections::HashMap, env, time::Duration};
 use user_v1::{get_user_by_id, get_user_by_name, search_user_by_name, update_user};
 
-mod auth_routes;
+mod auth;
 mod authorization;
 mod db;
 mod friend_v1;
@@ -56,6 +57,11 @@ const PIC_CONFIG_LIMIT: usize = 2_262_144;
 async fn main() -> std::io::Result<()> {
     let config: Config = build_config();
 
+    let http_client = ClientBuilder::new()
+        .timeout(Duration::new(5, 0))
+        .build()
+        .unwrap();
+
     let pool: MySqlPool = MySqlPool::connect(&config.db_connection_string)
         .await
         .unwrap();
@@ -69,6 +75,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(config.clone()))
             .app_data(Data::new(pool.clone()))
             .app_data(Data::new(client.clone()))
+            .app_data(Data::new(http_client.clone()))
             .wrap(Authorization)
             .service(web::scope("/ping").service(ping))
             .service(web::scope("/auth").service(request_code).service(sign_in))

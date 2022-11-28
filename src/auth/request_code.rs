@@ -1,26 +1,22 @@
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
 
 use crate::{
-    db::{
-        create_authattempt, create_phoneauth, create_user, get_current_phoneauths,
-        get_phoneauth_attempts, get_user_by_phone, update_authattempt_used, PhoneAuth, User,
-    },
+    db::{create_phoneauth, create_user, get_current_phoneauths, get_user_by_phone, User},
     Config,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
     post,
     web::{Data, Query},
-    HttpResponse, Responder, Result,
+    HttpResponse, Result,
 };
 use chrono::Utc;
-use jwt::mint_jwt;
 use opentelemetry::{
     global,
     trace::{Span, Status, Tracer},
 };
 use rand::Rng;
-use reqwest::{ClientBuilder, StatusCode};
+use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use sqlx::MySqlPool;
 use uuid::Uuid;
@@ -37,6 +33,7 @@ pub struct RequestCodeRequest {
 pub async fn request_code(
     pool: Data<MySqlPool>,
     config: Data<Config>,
+    http_client: Data<Client>,
     request_code_request: Query<RequestCodeRequest>,
 ) -> Result<HttpResponse> {
     let valid_phone = validation::validate_phone(&request_code_request.phone);
@@ -102,7 +99,13 @@ pub async fn request_code(
     let tracer = global::tracer("phone auth request");
     let mut span = tracer.start("twilio call");
 
-    let auth_res = send_auth(&config.twilio_key, &existing_user.phone, &auth_code).await;
+    let auth_res = send_auth(
+        &http_client,
+        &config.twilio_key,
+        &existing_user.phone,
+        &auth_code,
+    )
+    .await;
 
     match auth_res {
         Ok(_) => {
@@ -111,106 +114,27 @@ pub async fn request_code(
         }
         Err(err) => {
             span.set_status(Status::error(err.clone()));
-            return Ok(HttpResponse::InternalServerError().body(err.to_string()));
+            return Ok(HttpResponse::InternalServerError().body("failed to send auth request"));
         }
     }
 }
 
-#[derive(Deserialize)]
-pub struct SignInRequest {
-    phone: String,
-    code: String,
-}
-
-/// Allows users to submit a code to authenticate to a profile.
-#[post("/signin")]
-pub async fn sign_in(
-    config: Data<Config>,
-    pool: Data<MySqlPool>,
-    sign_in_request: Query<SignInRequest>,
-) -> Result<impl Responder> {
-    let valid_phone = validation::validate_phone(&sign_in_request.phone);
-    if let Err(phone_err) = valid_phone {
-        return Err(ErrorBadRequest(phone_err.to_string()));
-    }
-
-    let valid_code = validation::validate_code(&sign_in_request.code);
-    if let Err(code_err) = valid_code {
-        return Err(ErrorBadRequest(code_err.to_string()));
-    }
-
-    let create_authattempt_res = create_authattempt(&pool, &sign_in_request.phone).await;
-    if let Err(_) = create_authattempt_res {
-        return Err(ErrorInternalServerError("unable to start auth attempt"));
-    }
-
-    let phone_auth_attemps_res = get_phoneauth_attempts(&pool, &sign_in_request.phone).await;
-    if let Ok(phone_auth_attempts) = phone_auth_attemps_res {
-        if phone_auth_attempts.len() >= 4 {
-            return Err(ErrorBadRequest("too many auth attempts"));
-        }
-    } else {
-        return Err(ErrorInternalServerError("unable to get auth attempts"));
-    }
-
-    let phone_auth_res = get_current_phoneauths(&pool, &sign_in_request.phone).await;
-    let phone_auths: Vec<PhoneAuth>;
-    if let Ok(phone_auths_tmp) = phone_auth_res {
-        phone_auths = phone_auths_tmp;
-    } else {
-        return Err(ErrorInternalServerError("unable to get current phoneauths"));
-    }
-
-    let matched_phoneauth = phone_auths
-        .iter()
-        .filter(|ar| ar.code == sign_in_request.code)
-        .collect::<Vec<&PhoneAuth>>();
-
-    if matched_phoneauth.len() == 1 {
-        let user: User;
-        let user_res = get_user_by_phone(&pool, &sign_in_request.phone).await;
-        if let Ok(user_opt) = user_res {
-            if let Some(user_tmp) = user_opt {
-                user = user_tmp;
-            } else {
-                return Err(ErrorInternalServerError(
-                    "unable to find use for given phone",
-                ));
-            }
-        } else {
-            return Err(ErrorInternalServerError("error fetching user by phone"));
-        }
-
-        let authattempt_update_res =
-            update_authattempt_used(&pool, &matched_phoneauth.first().unwrap().id).await;
-        if let Err(_) = authattempt_update_res {
-            return Err(ErrorInternalServerError("unable to update authattempt"));
-        }
-
-        let jwt = mint_jwt(&config.signing_keys, &user.id);
-
-        Ok(jwt)
-    } else {
-        return Err(ErrorBadRequest("invalid code"));
-    }
-}
-
-/// TODO: Shared HTTPClient Pool and just make this better.
-async fn send_auth(twilio_secret: &String, phone: &str, code: &str) -> Result<(), String> {
-    let request_url = "https://api.twilio.com/2010-04-01/Accounts/AC0094c61aa39fc9c673130f6e28e43bad/Messages.json";
-
-    let timeout = Duration::new(5, 0);
-    let client = ClientBuilder::new().timeout(timeout).build().unwrap();
-
-    let clean_phone = phone.to_string().replace(" ", "");
+/// Sends a text with the generated auth code to the users phone.
+async fn send_auth(
+    client: &Client,
+    twilio_secret: &String,
+    phone: &str,
+    code: &str,
+) -> Result<(), String> {
+    const REQUEST_URL: &str = "https://api.twilio.com/2010-04-01/Accounts/AC0094c61aa39fc9c673130f6e28e43bad/Messages.json";
 
     let mut params = HashMap::new();
     params.insert("Body", format!("{} is your Mob auth code!", code));
     params.insert("From", "+17246134841".to_string());
-    params.insert("To", format!("+{}", clean_phone));
+    params.insert("To", format!("+{}", phone));
 
     let response_res = client
-        .post(request_url)
+        .post(REQUEST_URL)
         .header("Content-Type", "application/x-www-form-urlencoded")
         .form(&params)
         .basic_auth("AC0094c61aa39fc9c673130f6e28e43bad", Some(twilio_secret))
@@ -222,11 +146,11 @@ async fn send_auth(twilio_secret: &String, phone: &str, code: &str) -> Result<()
             StatusCode::CREATED => Ok(()),
             _ => Err(format!(
                 "{} {}",
-                "twilio send failed with status".to_string(),
+                "twilio send finished with unexpected status:".to_string(),
                 response.status()
             )),
         },
-        Err(_) => Err("phone message failed".to_string()),
+        Err(err) => Err(err.to_string()),
     }
 }
 
@@ -244,16 +168,15 @@ fn get_new_user_name() -> String {
     return user_name;
 }
 
-/// THIS IS TEMPORARY AND NEEDS TO BE CHANGED TO SOMETHING CRYPTOGRAPHICALLY SECURE
-/// COLTON FUCKING MAKE THIS GOOD BEFORE BETA
+/// Generates a new 9 digit auth code authenticated via phone.
 fn get_new_auth_code() -> String {
     let mut rng = rand::thread_rng();
-    let mut user_name = String::from("");
+    let mut code = String::from("");
 
     for _ in 0..9 {
         let num = rng.gen_range(0..9);
-        user_name.push_str(&num.to_string());
+        code.push_str(&num.to_string());
     }
 
-    return user_name;
+    return code;
 }
