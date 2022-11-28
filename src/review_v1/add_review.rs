@@ -8,7 +8,7 @@ use actix_web::{
     web::{Data, Json, ReqData},
     HttpResponse, Responder, Result,
 };
-use chrono::{NaiveDateTime, Utc};
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use uuid::Uuid;
