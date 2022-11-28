@@ -3,6 +3,7 @@ use sqlx::{types::chrono::Utc, Error, MySqlPool, Row};
 
 use super::{AuthAttempt, Friend, FriendRequest, Like, PhoneAuth, Pic, Reply, Review, User};
 
+/// Simply gets a ping record.
 pub async fn get_ping(client: &MySqlPool, id: &str) -> Result<String, Error> {
     let row = sqlx::query("SELECT * FROM ping WHERE id = ?")
         .bind(id)
@@ -12,6 +13,7 @@ pub async fn get_ping(client: &MySqlPool, id: &str) -> Result<String, Error> {
     return Ok(row.try_get("id")?);
 }
 
+/// Tries to get a user by `user.id`, and will return `None` if not found.
 pub async fn get_user(client: &MySqlPool, id: &str) -> Result<Option<User>, Error> {
     let row_opt = sqlx::query("SELECT * FROM user WHERE id = ?")
         .bind(id)
@@ -25,6 +27,7 @@ pub async fn get_user(client: &MySqlPool, id: &str) -> Result<Option<User>, Erro
     }
 }
 
+/// Tries to get a user by exact `user.name`, and will return `None` if not found.
 pub async fn get_user_from_name(client: &MySqlPool, name: &str) -> Result<Option<User>, Error> {
     let row_opt = sqlx::query("SELECT * FROM user WHERE name = ?")
         .bind(name)
@@ -38,6 +41,8 @@ pub async fn get_user_from_name(client: &MySqlPool, name: &str) -> Result<Option
     }
 }
 
+/// Gets a list of users from the given `user.name`.
+/// This search is a trailing wildcard and limits to top 50 results.
 pub async fn search_user_from_name(client: &MySqlPool, name: &str) -> Result<Vec<User>, Error> {
     let search_term = format!("{}%", name.replace("%", ""));
     let rows = sqlx::query("SELECT * FROM user WHERE name LIKE ? LIMIT 50")
@@ -50,6 +55,7 @@ pub async fn search_user_from_name(client: &MySqlPool, name: &str) -> Result<Vec
     return Ok(out);
 }
 
+/// Gets the existence of a user by `user.id`. True if exists, false if not.
 pub async fn does_user_exist(client: &MySqlPool, id: &str) -> Result<bool, Error> {
     let row = sqlx::query("SELECT * FROM user WHERE id = ?")
         .bind(id)
@@ -59,6 +65,7 @@ pub async fn does_user_exist(client: &MySqlPool, id: &str) -> Result<bool, Error
     return Ok(row.len() == 1);
 }
 
+/// Gets the existence of a user by `user.name`. True if exists, false if not.
 pub async fn does_user_exist_by_name(client: &MySqlPool, name: &str) -> Result<bool, Error> {
     let row = sqlx::query("SELECT * FROM user WHERE name = ?")
         .bind(name)
@@ -68,6 +75,7 @@ pub async fn does_user_exist_by_name(client: &MySqlPool, name: &str) -> Result<b
     return Ok(row.len() == 1);
 }
 
+/// Gets a given user by `user.phone`, and will return `None` if not found.
 pub async fn get_user_by_phone(client: &MySqlPool, phone: &str) -> Result<Option<User>, Error> {
     let rows = sqlx::query("SELECT * FROM user WHERE phone = ?")
         .bind(phone)
@@ -81,6 +89,8 @@ pub async fn get_user_by_phone(client: &MySqlPool, phone: &str) -> Result<Option
     return Ok(Some((&(rows.first())).unwrap().into()));
 }
 
+/// Gets the current phoneauths.
+/// Results are within the last 1 hour of `phoneauth.created`, and `phoneauth.used` is `false`
 pub async fn get_current_phoneauths(
     client: &MySqlPool,
     phone: &str,
@@ -97,6 +107,7 @@ pub async fn get_current_phoneauths(
     return Ok(out);
 }
 
+/// Gets the current authattempts for a given `authattempt.phone` in the last 1 hour of `authattempt.created`.
 pub async fn get_phoneauth_attempts(
     client: &MySqlPool,
     phone: &str,
@@ -112,6 +123,7 @@ pub async fn get_phoneauth_attempts(
     return Ok(out);
 }
 
+/// Gets the users current incoming friend requests that `friendrequest.ignored` is false.
 pub async fn get_incoming_friend_requests(
     client: &MySqlPool,
     user_id: &str,
@@ -126,6 +138,7 @@ pub async fn get_incoming_friend_requests(
     return Ok(out);
 }
 
+/// Gets the users current incoming friend requests that `friendrequest.ignored` is true.
 pub async fn get_incoming_ignored_friend_requests(
     client: &MySqlPool,
     user_id: &str,
@@ -140,6 +153,7 @@ pub async fn get_incoming_ignored_friend_requests(
     return Ok(out);
 }
 
+/// Gets the users outgoing friend requests.
 pub async fn get_outgoing_friend_requests(
     client: &MySqlPool,
     user_id: &str,
@@ -154,6 +168,8 @@ pub async fn get_outgoing_friend_requests(
     return Ok(out);
 }
 
+/// Gets the users current friends list.
+/// Not paged.
 pub async fn get_current_friends(client: &MySqlPool, user_id: &str) -> Result<Vec<Friend>, Error> {
     let rows = sqlx::query("SELECT * FROM friend WHERE user_id = ?")
         .bind(user_id)
@@ -165,6 +181,7 @@ pub async fn get_current_friends(client: &MySqlPool, user_id: &str) -> Result<Ve
     return Ok(out);
 }
 
+/// Gets a pic record for a specific id, will return `None` if it doesn't exists.
 pub async fn get_pic(client: &MySqlPool, id: &str) -> Result<Option<Pic>, Error> {
     let row_opt = sqlx::query("SELECT * FROM pic WHERE id = ?")
         .bind(id)
@@ -178,7 +195,7 @@ pub async fn get_pic(client: &MySqlPool, id: &str) -> Result<Option<Pic>, Error>
     }
 }
 
-/// Fetches a single review for the given review_id.
+/// Gets a single review for the given review_id.
 /// Accounts for the passed user_id's fiends and own reviews.
 pub async fn get_review(
     client: &MySqlPool,
@@ -207,8 +224,9 @@ pub async fn get_review(
     }
 }
 
-/// Fetches reviews from a given name, latitude, and longitude combination.
+/// Gets all reviews from a given name, latitude, and longitude combination.
 /// Accounts for the passed user_id's fiends and own reviews.
+/// ## Results are NOT paged.
 pub async fn get_reviews_from_location(
     client: &MySqlPool,
     user_id: &str,
@@ -241,8 +259,9 @@ pub async fn get_reviews_from_location(
     return Ok(out);
 }
 
-/// Fetches reviews from a given bounding box.
+/// Gets reviews from a given bounding box.
 /// Accounts for the passed user_id's friends and own reviews.
+/// ## Results are paged.
 pub async fn get_reviews_from_bounds(
     client: &MySqlPool,
     user_id: &str,
@@ -287,6 +306,7 @@ pub async fn get_reviews_from_bounds(
 
 /// Fetches latest reviews from a given page.
 /// Accounts for the passed user_id's fiends and own reviews.
+/// ## Results are paged.
 pub async fn get_latest_reviews(
     client: &MySqlPool,
     user_id: &str,
@@ -316,6 +336,8 @@ pub async fn get_latest_reviews(
     return Ok(out);
 }
 
+/// Gets all likes for a given review.
+/// ## Does not validate the review is able to be viewed by calling user.
 pub async fn get_all_likes(client: &MySqlPool, review_id: &str) -> Result<Vec<Like>, Error> {
     let rows = sqlx::query("SELECT * FROM likes WHERE review_id = ?")
         .bind(review_id)
@@ -327,6 +349,7 @@ pub async fn get_all_likes(client: &MySqlPool, review_id: &str) -> Result<Vec<Li
     return Ok(out);
 }
 
+/// Gets whether a specific review is already liked by a user.
 pub async fn is_already_liked(
     client: &MySqlPool,
     user_id: &str,
@@ -341,6 +364,8 @@ pub async fn is_already_liked(
     return Ok(rows.len() > 0);
 }
 
+/// Gets all the replies for a given review.
+/// ## Does not validate the review is able to be viewed by calling user.
 pub async fn get_all_replies(client: &MySqlPool, review_id: &str) -> Result<Vec<Reply>, Error> {
     let rows = sqlx::query("SELECT * FROM reply WHERE review_id = ?")
         .bind(review_id)
