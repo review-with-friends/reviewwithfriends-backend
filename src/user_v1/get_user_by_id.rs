@@ -15,6 +15,7 @@ pub struct GetUserByIdRequest {
     id: String,
 }
 
+/// Fetches a user by id.
 #[get("/by_id")]
 pub async fn get_user_by_id(
     _authenticated_user: ReqData<AuthenticatedUser>,

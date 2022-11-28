@@ -16,6 +16,7 @@ pub struct AcceptRequest {
     request_id: String,
 }
 
+/// Allows users to accept an incoming friend request.
 #[post("/accept_friend")]
 pub async fn accept_friend(
     authenticated_user: ReqData<AuthenticatedUser>,

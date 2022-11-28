@@ -16,6 +16,7 @@ pub struct DeclineRequest {
     request_id: String,
 }
 
+/// Allows users to decline an incoming friend request.
 #[post("/decline_friend")]
 pub async fn decline_friend(
     authenticated_user: ReqData<AuthenticatedUser>,

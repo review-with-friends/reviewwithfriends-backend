@@ -18,6 +18,7 @@ pub struct ProfilePicRequest {
     user_id: String,
 }
 
+/// Fetches a profile pic set for a user.
 #[get("/profile_pic")]
 pub async fn get_profile_pic(
     _authenticated_user: ReqData<AuthenticatedUser>,

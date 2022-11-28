@@ -9,6 +9,7 @@ use sqlx::MySqlPool;
 
 use super::friend_types::FriendRequestPub;
 
+/// Get friend requests that the user has ignored.
 #[get("/ignored_friends")]
 pub async fn get_ignored_friends(
     authenticated_user: ReqData<AuthenticatedUser>,

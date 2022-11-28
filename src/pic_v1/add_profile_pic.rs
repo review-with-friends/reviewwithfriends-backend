@@ -13,6 +13,7 @@ use validation::validate_profile_pic;
 
 use super::shared_utils::best_effort_delete_pic;
 
+/// Allows users to update their profile pic.
 #[post("/profile_pic")]
 pub async fn add_profile_pic(
     authenticated_user: ReqData<AuthenticatedUser>,

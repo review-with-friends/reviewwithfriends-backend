@@ -9,6 +9,7 @@ use sqlx::MySqlPool;
 
 use super::friend_types::FriendRequestPub;
 
+/// Gets a users outgoing friend request.
 #[get("/outgoing_friends")]
 pub async fn get_outgoing_friends(
     authenticated_user: ReqData<AuthenticatedUser>,

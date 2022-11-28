@@ -3,7 +3,7 @@ use crate::{
     db::{get_all_replies, get_review},
 };
 use actix_web::{
-    error::ErrorInternalServerError,
+    error::{ErrorInternalServerError, ErrorNotFound},
     get,
     web::{Data, Json, Query, ReqData},
     Responder, Result,
@@ -18,16 +18,22 @@ pub struct GetRepliesRequest {
     review_id: String,
 }
 
+/// Gets all the replies for a given review.
 #[get("")]
 pub async fn get_replies(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
     get_replies_request: Query<GetRepliesRequest>,
 ) -> Result<impl Responder> {
-    if let Err(_) = get_review(&pool, &authenticated_user.0, &get_replies_request.review_id).await {
-        return Err(ErrorInternalServerError(
-            "unable to find review".to_string(),
-        ));
+    let review_res = get_review(&pool, &authenticated_user.0, &get_replies_request.review_id).await;
+
+    match review_res {
+        Ok(review_opt) => {
+            if let None = review_opt {
+                return Err(ErrorNotFound("could not find review".to_string()));
+            }
+        }
+        Err(_) => return Err(ErrorInternalServerError("failed to get review".to_string())),
     }
 
     let reply_res = get_all_replies(&pool, &get_replies_request.review_id).await;

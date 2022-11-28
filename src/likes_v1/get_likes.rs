@@ -18,6 +18,7 @@ pub struct GetUserByIdRequest {
     review_id: String,
 }
 
+/// Gets all the users who have liked a post.
 #[get("")]
 pub async fn get_likes(
     authenticated_user: ReqData<AuthenticatedUser>,

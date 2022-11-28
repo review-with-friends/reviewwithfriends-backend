@@ -17,6 +17,8 @@ pub struct UpdateUserRequest {
     name: Option<String>,
 }
 
+/// Allows the updating of display_name and name fields.
+/// display_name isn't unique in the table; but name is.
 #[post("")]
 pub async fn update_user(
     authenticated_user: ReqData<AuthenticatedUser>,

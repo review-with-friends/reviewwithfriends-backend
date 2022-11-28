@@ -17,6 +17,7 @@ pub struct RemoveReviewRequest {
     pub review_id: String,
 }
 
+/// Allows a user to remove their review.
 #[post("/remove_review")]
 pub async fn remove_review(
     authenticated_user: ReqData<AuthenticatedUser>,

@@ -18,6 +18,7 @@ pub struct SendRequest {
     friend_id: String,
 }
 
+/// Allows users to send a friend request to another user.
 #[post("/add_friend")]
 pub async fn add_friend(
     authenticated_user: ReqData<AuthenticatedUser>,

@@ -16,6 +16,7 @@ pub struct CancelRequest {
     request_id: String,
 }
 
+/// Allows users to cancel their already sent friend request.
 #[post("/cancel_friend")]
 pub async fn cancel_friend(
     authenticated_user: ReqData<AuthenticatedUser>,

@@ -19,6 +19,7 @@ pub struct AddReviewPicRequest {
     review_id: String,
 }
 
+/// Allows users to add a pic to their review.
 #[post("/review_pic")]
 pub async fn add_review_pic(
     authenticated_user: ReqData<AuthenticatedUser>,

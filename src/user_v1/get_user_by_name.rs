@@ -15,6 +15,7 @@ pub struct GetUserByNameRequest {
     name: String,
 }
 
+/// Fetches a user by name.
 #[get("/by_name")]
 pub async fn get_user_by_name(
     _authenticated_user: ReqData<AuthenticatedUser>,

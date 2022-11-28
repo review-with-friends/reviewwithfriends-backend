@@ -15,6 +15,8 @@ pub struct UserSearchRequest {
     name: String,
 }
 
+/// Searches for users by name.
+/// Returns a list of the results.
 #[get("/search_by_name")]
 pub async fn search_user_by_name(
     _authenticated_user: ReqData<AuthenticatedUser>,

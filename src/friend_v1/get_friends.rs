@@ -9,6 +9,7 @@ use sqlx::MySqlPool;
 
 use super::friend_types::FriendPub;
 
+/// Allows a user to get their friends list.
 #[get("")]
 pub async fn get_friends(
     authenticated_user: ReqData<AuthenticatedUser>,

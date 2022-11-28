@@ -18,6 +18,7 @@ pub struct ReviewPicRequest {
     review_id: String,
 }
 
+/// Fetches a review_pic for a review the user can access.
 #[get("/review_pic")]
 pub async fn get_review_pic(
     authenticated_user: ReqData<AuthenticatedUser>,

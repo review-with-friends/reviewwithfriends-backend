@@ -17,6 +17,7 @@ pub struct RemoveReplyRequest {
     review_id: String,
 }
 
+/// Allows users to remove replies.
 #[post("/remove")]
 pub async fn remove_reply(
     authenticated_user: ReqData<AuthenticatedUser>,

@@ -16,6 +16,8 @@ pub struct IgnoreRequest {
     request_id: String,
 }
 
+/// Allows you to ignore a friend request.
+/// The sending user won't be able to send another.
 #[post("/ignore_friend")]
 pub async fn ignore_friend(
     authenticated_user: ReqData<AuthenticatedUser>,

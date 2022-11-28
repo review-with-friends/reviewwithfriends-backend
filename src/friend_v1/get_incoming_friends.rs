@@ -9,6 +9,7 @@ use sqlx::MySqlPool;
 
 use super::friend_types::FriendRequestPub;
 
+/// Get incoming friend requests a user can choose to accept, decline, or ignore.
 #[get("/incoming_friends")]
 pub async fn get_incoming_friends(
     authenticated_user: ReqData<AuthenticatedUser>,

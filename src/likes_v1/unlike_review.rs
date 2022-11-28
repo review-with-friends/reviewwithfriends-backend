@@ -16,6 +16,7 @@ pub struct LikeReviewRequest {
     pub review_id: String,
 }
 
+/// Allows users to unlike a review.
 #[post("/unlike")]
 pub async fn unlike_review(
     authenticated_user: ReqData<AuthenticatedUser>,

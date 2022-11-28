@@ -19,6 +19,7 @@ pub struct EditReviewRequest {
     pub stars: Option<u8>,
 }
 
+// Allows owner to edit specific fields in a review.
 #[post("/edit")]
 pub async fn edit_review(
     authenticated_user: ReqData<AuthenticatedUser>,

@@ -31,6 +31,8 @@ pub struct RequestCodeRequest {
     phone: String,
 }
 
+/// Allows users to request an auth code for a given phone number.
+/// This will also create an initial profile.
 #[post("/requestcode")]
 pub async fn request_code(
     pool: Data<MySqlPool>,
@@ -120,6 +122,7 @@ pub struct SignInRequest {
     code: String,
 }
 
+/// Allows users to submit a code to authenticate to a profile.
 #[post("/signin")]
 pub async fn sign_in(
     config: Data<Config>,

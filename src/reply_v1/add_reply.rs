@@ -18,6 +18,7 @@ pub struct AddReplyRequest {
     review_id: String,
 }
 
+/// Allows users to add a reply linked to a review.
 #[post("")]
 pub async fn add_reply(
     authenticated_user: ReqData<AuthenticatedUser>,

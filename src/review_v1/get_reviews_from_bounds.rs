@@ -19,6 +19,7 @@ pub struct ReviewMapBoundRequest {
     page: u32,
 }
 
+/// Gets reviews you are able to see if a given map bounding box.
 #[get("/reviews_from_bounds")]
 pub async fn get_reviews_from_map_bounds(
     authenticated_user: ReqData<AuthenticatedUser>,

@@ -16,6 +16,7 @@ pub struct RemoveRequest {
     friend_id: String,
 }
 
+/// Removes a friend from a users friendlist.
 #[post("/remove")]
 pub async fn remove_friend(
     authenticated_user: ReqData<AuthenticatedUser>,

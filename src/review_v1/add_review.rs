@@ -28,6 +28,7 @@ pub struct AddReviewRequest {
     pub is_custom: bool,
 }
 
+/// Allows the user to create a review for a specific place.
 #[post("/")]
 pub async fn add_review(
     authenticated_user: ReqData<AuthenticatedUser>,

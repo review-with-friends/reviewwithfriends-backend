@@ -16,6 +16,7 @@ pub struct LikeReviewRequest {
     pub review_id: String,
 }
 
+/// Allows users to like a review.
 #[post("")]
 pub async fn like_review(
     authenticated_user: ReqData<AuthenticatedUser>,

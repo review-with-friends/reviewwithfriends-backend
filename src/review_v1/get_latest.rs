@@ -15,6 +15,8 @@ pub struct ReviewLocationRequest {
     page: u32,
 }
 
+/// Simple activity tracking.
+/// Paged for infinite scroll support.
 #[get("/latest")]
 pub async fn get_latest(
     authenticated_user: ReqData<AuthenticatedUser>,

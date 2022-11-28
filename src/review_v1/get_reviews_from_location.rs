@@ -17,6 +17,7 @@ pub struct ReviewLocationRequest {
     name: String,
 }
 
+/// Gets reviews you are able to see that qualify via exact location.
 #[get("/reviews_from_loc")]
 pub async fn get_reviews_from_loc(
     authenticated_user: ReqData<AuthenticatedUser>,
