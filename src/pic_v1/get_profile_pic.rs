@@ -26,17 +26,25 @@ pub async fn get_profile_pic(
     avatar_request: Query<ProfilePicRequest>,
 ) -> Result<HttpResponse> {
     let pic_id: String;
-    if let Ok(user) = get_user(&pool, &avatar_request.user_id).await {
-        pic_id = user.pic_id;
+    if let Ok(user_opt) = get_user(&pool, &avatar_request.user_id).await {
+        if let Some(user) = user_opt {
+            pic_id = user.pic_id;
+        } else {
+            return Ok(HttpResponse::NotFound().body("could not find user"));
+        }
     } else {
-        return Ok(HttpResponse::NotFound().body("user not found"));
+        return Ok(HttpResponse::InternalServerError().body("failed to get user"));
     }
 
     let pic: Pic;
-    if let Ok(pic_) = get_pic(&pool, &pic_id).await {
-        pic = pic_;
+    if let Ok(pic_opt) = get_pic(&pool, &pic_id).await {
+        if let Some(pic_tmp) = pic_opt {
+            pic = pic_tmp;
+        } else {
+            return Ok(HttpResponse::NotFound().body("pic not found"));
+        }
     } else {
-        return Ok(HttpResponse::NotFound().body("pic not found"));
+        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic"));
     }
 
     let pic_obj: GetObjectOutput;

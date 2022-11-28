@@ -1,6 +1,6 @@
 use crate::{authorization::AuthenticatedUser, db::get_user};
 use actix_web::{
-    error::ErrorInternalServerError,
+    error::{ErrorInternalServerError, ErrorNotFound},
     get,
     web::{Data, Json, Query, ReqData},
     Responder, Result,
@@ -24,7 +24,13 @@ pub async fn get_user_by_id(
     let user_res = get_user(&pool, &get_user_request.id).await;
 
     match user_res {
-        Ok(user) => Ok(Json(UserPub::from(user))),
+        Ok(user_opt) => {
+            if let Some(user) = user_opt {
+                return Ok(Json(UserPub::from(user)));
+            } else {
+                return Err(ErrorNotFound("could not find user"));
+            }
+        }
         Err(_) => return Err(ErrorInternalServerError("unable to get user".to_string())),
     }
 }

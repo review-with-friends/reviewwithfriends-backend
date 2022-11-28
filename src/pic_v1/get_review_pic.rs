@@ -26,23 +26,31 @@ pub async fn get_review_pic(
     review_pic_request: Query<ReviewPicRequest>,
 ) -> Result<HttpResponse> {
     let pic_id: String;
-    if let Ok(review) =
+    if let Ok(review_opt) =
         get_review(&pool, &authenticated_user.0, &review_pic_request.review_id).await
     {
-        if let Some(_pic_id) = review.pic_id {
-            pic_id = _pic_id;
+        if let Some(review) = review_opt {
+            if let Some(_pic_id) = review.pic_id {
+                pic_id = _pic_id;
+            } else {
+                return Ok(HttpResponse::NotFound().body("review has no pic"));
+            }
         } else {
-            return Ok(HttpResponse::NotFound().body("review has no pic"));
+            return Ok(HttpResponse::NotFound().body("could not find review"));
         }
     } else {
-        return Ok(HttpResponse::NotFound().body("review not found"));
+        return Ok(HttpResponse::NotFound().body("failed to get review"));
     }
 
     let pic: Pic;
-    if let Ok(pic_) = get_pic(&pool, &pic_id).await {
-        pic = pic_;
+    if let Ok(pic_opt) = get_pic(&pool, &pic_id).await {
+        if let Some(pic_tmp) = pic_opt {
+            pic = pic_tmp;
+        } else {
+            return Ok(HttpResponse::NotFound().body("pic not found"));
+        }
     } else {
-        return Ok(HttpResponse::NotFound().body("pic not found"));
+        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic"));
     }
 
     let pic_obj: GetObjectOutput;
@@ -56,7 +64,7 @@ pub async fn get_review_pic(
     {
         pic_obj = pic_obj_;
     } else {
-        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic from db"));
+        return Ok(HttpResponse::InternalServerError().body("failed to fetch pic from storage"));
     }
 
     let mut buf: Vec<u8> = Vec::new();

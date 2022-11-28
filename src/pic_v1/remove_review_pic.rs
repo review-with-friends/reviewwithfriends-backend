@@ -33,11 +33,15 @@ pub async fn remove_review_pic(
 
     let review: Review;
     match review_res {
-        Ok(_review) => {
-            review = _review;
+        Ok(review_opt) => {
+            if let Some(review_tmp) = review_opt {
+                review = review_tmp;
+            } else {
+                return Ok(HttpResponse::NotFound().body("could not find review"));
+            }
         }
         Err(_) => {
-            return Ok(HttpResponse::InternalServerError().body("unable to get review"));
+            return Ok(HttpResponse::InternalServerError().body("failed to get review"));
         }
     }
 

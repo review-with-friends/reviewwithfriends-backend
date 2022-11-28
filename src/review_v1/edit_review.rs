@@ -3,7 +3,7 @@ use crate::{
     db::{get_review, update_review, Review},
 };
 use actix_web::{
-    error::ErrorInternalServerError,
+    error::{ErrorInternalServerError, ErrorNotFound},
     post,
     web::{Data, Json, ReqData},
     HttpResponse, Responder, Result,
@@ -32,8 +32,12 @@ pub async fn edit_review(
     let review_res = get_review(&pool, &authenticated_user.0, &edit_review_request.review_id).await;
 
     match review_res {
-        Ok(_review) => {
-            review = _review;
+        Ok(review_opt) => {
+            if let Some(review_tmp) = review_opt {
+                review = review_tmp;
+            } else {
+                return Err(ErrorNotFound("could not find review"));
+            }
         }
         Err(_) => {
             return Err(ErrorInternalServerError("failed to get review"));

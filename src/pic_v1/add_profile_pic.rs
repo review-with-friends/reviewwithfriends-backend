@@ -28,8 +28,12 @@ pub async fn add_profile_pic(
     let user_res = get_user(&pool, &authenticated_user.0).await;
 
     match user_res {
-        Ok(user) => {
-            previous_pic_id = user.pic_id;
+        Ok(user_opt) => {
+            if let Some(user) = user_opt {
+                previous_pic_id = user.pic_id;
+            } else {
+                return Ok(HttpResponse::NotFound().body("could not find user"));
+            }
         }
         Err(_) => {
             return Ok(HttpResponse::InternalServerError().body("unable to get user"));

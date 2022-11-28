@@ -3,7 +3,7 @@ use crate::{
     db::{does_user_exist_by_name, get_user, update_usernames, User},
 };
 use actix_web::{
-    error::{ErrorBadRequest, ErrorInternalServerError},
+    error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
     post,
     web::{Data, Json, ReqData},
     HttpResponse, Responder, Result,
@@ -30,8 +30,12 @@ pub async fn update_user(
     let user_res = get_user(&pool, &authenticated_user.0).await;
 
     match user_res {
-        Ok(_user) => {
-            user = _user;
+        Ok(user_opt) => {
+            if let Some(user_tmp) = user_opt {
+                user = user_tmp;
+            } else {
+                return Err(ErrorNotFound("could not find user"));
+            }
         }
         Err(_) => return Err(ErrorInternalServerError("unable to get user")),
     }

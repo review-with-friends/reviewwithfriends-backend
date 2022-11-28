@@ -41,12 +41,16 @@ pub async fn add_review_pic(
 
     let review: Review;
     match review_res {
-        Ok(_review) => {
-            previous_pic_id = _review.pic_id.clone();
-            review = _review;
+        Ok(review_opt) => {
+            if let Some(review_tmp) = review_opt {
+                previous_pic_id = review_tmp.pic_id.clone();
+                review = review_tmp;
+            } else {
+                return Ok(HttpResponse::NotFound().body("could not find review"));
+            }
         }
         Err(_) => {
-            return Ok(HttpResponse::InternalServerError().body("unable to get review"));
+            return Ok(HttpResponse::InternalServerError().body("failed to get review"));
         }
     }
 

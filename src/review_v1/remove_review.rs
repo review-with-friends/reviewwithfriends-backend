@@ -33,16 +33,20 @@ pub async fn remove_review(
 
     let review: Review;
     match review_res {
-        Ok(_review) => {
-            review = _review;
+        Ok(review_opt) => {
+            if let Some(review_tmp) = review_opt {
+                review = review_tmp;
+            } else {
+                return Ok(HttpResponse::NotFound().body("could not find review"));
+            }
         }
         Err(_) => {
-            return Ok(HttpResponse::InternalServerError().body("unable to get review"));
+            return Ok(HttpResponse::InternalServerError().body("failed to get review"));
         }
     }
 
     if review.user_id != authenticated_user.0 {
-        return Ok(HttpResponse::BadRequest().body("unable to remove this review"));
+        return Ok(HttpResponse::Forbidden().body("you did not create this review"));
     }
 
     if let Err(_) = remove_review_and_children(&pool, &remove_review_request.review_id).await {

@@ -12,22 +12,30 @@ pub async fn get_ping(client: &MySqlPool, id: &str) -> Result<String, Error> {
     return Ok(row.try_get("id")?);
 }
 
-pub async fn get_user(client: &MySqlPool, id: &str) -> Result<User, Error> {
-    let row = sqlx::query("SELECT * FROM user WHERE id = ?")
+pub async fn get_user(client: &MySqlPool, id: &str) -> Result<Option<User>, Error> {
+    let row_opt = sqlx::query("SELECT * FROM user WHERE id = ?")
         .bind(id)
-        .fetch_one(client)
+        .fetch_optional(client)
         .await?;
 
-    return Ok((&row).into());
+    if let Some(row) = row_opt {
+        return Ok(Some((&row).into()));
+    } else {
+        return Ok(None);
+    }
 }
 
-pub async fn get_user_from_name(client: &MySqlPool, name: &str) -> Result<User, Error> {
-    let row = sqlx::query("SELECT * FROM user WHERE name = ?")
+pub async fn get_user_from_name(client: &MySqlPool, name: &str) -> Result<Option<User>, Error> {
+    let row_opt = sqlx::query("SELECT * FROM user WHERE name = ?")
         .bind(name)
-        .fetch_one(client)
+        .fetch_optional(client)
         .await?;
 
-    return Ok((&row).into());
+    if let Some(row) = row_opt {
+        return Ok(Some((&row).into()));
+    } else {
+        return Ok(None);
+    }
 }
 
 pub async fn search_user_from_name(client: &MySqlPool, name: &str) -> Result<Vec<User>, Error> {
@@ -157,13 +165,17 @@ pub async fn get_current_friends(client: &MySqlPool, user_id: &str) -> Result<Ve
     return Ok(out);
 }
 
-pub async fn get_pic(client: &MySqlPool, id: &str) -> Result<Pic, Error> {
-    let row = sqlx::query("SELECT * FROM pic WHERE id = ?")
+pub async fn get_pic(client: &MySqlPool, id: &str) -> Result<Option<Pic>, Error> {
+    let row_opt = sqlx::query("SELECT * FROM pic WHERE id = ?")
         .bind(id)
-        .fetch_one(client)
+        .fetch_optional(client)
         .await?;
 
-    return Ok((&row).into());
+    if let Some(row) = row_opt {
+        return Ok(Some((&row).into()));
+    } else {
+        return Ok(None);
+    }
 }
 
 /// Fetches a single review for the given review_id.
@@ -172,8 +184,8 @@ pub async fn get_review(
     client: &MySqlPool,
     user_id: &str,
     review_id: &str,
-) -> Result<Review, Error> {
-    let row = sqlx::query(
+) -> Result<Option<Review>, Error> {
+    let row_opt = sqlx::query(
         "SELECT r1.* FROM review as r1
     INNER JOIN friend as f1 ON f1.friend_id = r1.user_id 
     WHERE f1.user_id = ? AND r1.id = ?
@@ -185,10 +197,14 @@ pub async fn get_review(
     .bind(review_id)
     .bind(user_id)
     .bind(review_id)
-    .fetch_one(client)
+    .fetch_optional(client)
     .await?;
 
-    return Ok((&row).into());
+    if let Some(row) = row_opt {
+        return Ok(Some((&row).into()));
+    } else {
+        return Ok(None);
+    }
 }
 
 /// Fetches reviews from a given name, latitude, and longitude combination.

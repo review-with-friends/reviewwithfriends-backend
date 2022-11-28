@@ -1,3 +1,13 @@
+# Core Values
+
+## 5XX Retry && 4XX Terminal
+
+Never assume data will exist. Always have a plan to return an appropriate response if it doesn't exist. We assume clients are able to freely retry 5XX errors, and can be confident 4XX should not be automatically retries unless user input is engaged.
+
+## 4XX be User Surfacable
+
+As a user, knowing what went wrong with my request is helpful in understanding my issue. Often shitty apps never consider failure cases, and we embrace failure cases. Any user interaction needs to have the ability to surface 4XX error message to enable the user to correct their mistake or retry.
+
 # Database Types
 
 ## Ping
