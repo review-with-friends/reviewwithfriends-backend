@@ -4,25 +4,13 @@ use jpeg_decoder::Decoder;
 /// no non-ascii characters.
 ///
 /// ```
-/// assert!(validation::validate_code("000000000").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_code("123456789").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_code("12345678").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_code("12345678").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_code("12345678a").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_code("a23456789").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_code("").is_err())
+/// assert!(validation::validate_code("000000000").is_ok());
+/// assert!(validation::validate_code("123456789").is_ok());
+/// assert!(validation::validate_code("12345678").is_err());
+/// assert!(validation::validate_code("12345678").is_err());
+/// assert!(validation::validate_code("12345678a").is_err());
+/// assert!(validation::validate_code("a23456789").is_err());
+/// assert!(validation::validate_code("").is_err());
 /// ```
 pub fn validate_code(code: &str) -> Result<(), String> {
     if code.len() != 9 {
@@ -42,25 +30,13 @@ pub fn validate_code(code: &str) -> Result<(), String> {
 ///
 /// We will preprend the '+' when making an auth call.
 /// ```
-/// assert!(validation::validate_phone("").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_phone("17014910059").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_phone("1 7014910059").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_phone("44 445566").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_phone("+44 445").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_phone("+++++").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_phone("+44445434434").is_err())
+/// assert!(validation::validate_phone("").is_err());
+/// assert!(validation::validate_phone("17014910059").is_ok());
+/// assert!(validation::validate_phone("1 7014910059").is_err());
+/// assert!(validation::validate_phone("44 445566").is_err());
+/// assert!(validation::validate_phone("+44 445").is_err());
+/// assert!(validation::validate_phone("+++++").is_err());
+/// assert!(validation::validate_phone("+44445434434").is_err());
 /// ```
 pub fn validate_phone(phone: &str) -> Result<(), String> {
     if phone.len() != 11 {
@@ -135,13 +111,9 @@ pub fn validate_review_pic(bytes: &[u8]) -> Result<(), String> {
 }
 
 /// ```
-/// assert!(validation::validate_reply_text("Test :D").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_reply_text(&"1".repeat(451)).is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_reply_text(&"1".repeat(450)).is_ok())
+/// assert!(validation::validate_reply_text("Test :D").is_ok());
+/// assert!(validation::validate_reply_text(&"1".repeat(451)).is_err());
+/// assert!(validation::validate_reply_text(&"1".repeat(450)).is_ok());
 /// ```
 pub fn validate_reply_text(text: &str) -> Result<(), String> {
     if text.len() > 450 {
@@ -152,19 +124,24 @@ pub fn validate_reply_text(text: &str) -> Result<(), String> {
 }
 
 /// ```
-/// assert!(validation::validate_name("Test :D").is_err())
+/// assert!(validation::validate_reply_text("Test :D").is_ok());
+/// assert!(validation::validate_reply_text(&"1".repeat(451)).is_err());
+/// assert!(validation::validate_reply_text(&"1".repeat(450)).is_ok());
 /// ```
+pub fn validate_review_text(text: &str) -> Result<(), String> {
+    if text.len() > 450 {
+        return Err("text too long".to_string());
+    }
+
+    return Ok(());
+}
+
 /// ```
-/// assert!(validation::validate_name("test").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_name("1234").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_name("1234💜").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_name("💜").is_err())
+/// assert!(validation::validate_name("Test :D").is_err());
+/// assert!(validation::validate_name("test").is_ok());
+/// assert!(validation::validate_name("1234").is_ok());
+/// assert!(validation::validate_name("1234💜").is_err());
+/// assert!(validation::validate_name("💜").is_err());
 /// ```
 pub fn validate_name(text: &str) -> Result<(), String> {
     if text.len() > 26 {
@@ -190,22 +167,12 @@ pub fn validate_name(text: &str) -> Result<(), String> {
 }
 
 /// ```
-/// assert!(validation::validate_display_name("Test :D").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_display_name("TES💜T").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_display_name("TES💜T  2321").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_display_name("TES").is_err())
-/// ```
-/// ```
-/// assert!(validation::validate_display_name("💜").is_ok())
-/// ```
-/// ```
-/// assert!(validation::validate_display_name("💜💜💜💜💜💜💜").is_err())
+/// assert!(validation::validate_display_name("Test :D").is_ok());
+/// assert!(validation::validate_display_name("TES💜T").is_ok());
+/// assert!(validation::validate_display_name("TES💜T  2321").is_ok());
+/// assert!(validation::validate_display_name("TES").is_err());
+/// assert!(validation::validate_display_name("💜").is_ok());
+/// assert!(validation::validate_display_name("💜💜💜💜💜💜💜").is_err());
 /// ```
 pub fn validate_display_name(text: &str) -> Result<(), String> {
     println!("{}", text.len());
@@ -217,6 +184,90 @@ pub fn validate_display_name(text: &str) -> Result<(), String> {
 
     if text.len() < 4 {
         return Err("display name too short - min 4 chars".to_string());
+    }
+
+    return Ok(());
+}
+
+/// ```
+/// assert!(validation::validate_category("Test :D").is_ok());
+/// assert!(validation::validate_display_name("💜").is_ok());
+/// assert!(validation::validate_display_name("💜💜💜💜💜💜💜💜💜💜💜").is_err());
+/// ```
+pub fn validate_category(text: &str) -> Result<(), String> {
+    if text.len() > 30 {
+        return Err("category too long - max 30 chars".to_string());
+    }
+
+    if text.len() < 4 {
+        return Err("category too short - min 4 chars".to_string());
+    }
+
+    return Ok(());
+}
+
+/// ```
+/// assert!(validation::validate_latitude(10.0).is_ok());
+/// assert!(validation::validate_latitude(-10.0).is_ok());
+/// assert!(validation::validate_latitude(91.0).is_err());
+/// assert!(validation::validate_latitude(-91.0).is_err());
+/// ```
+pub fn validate_latitude(latitude: f64) -> Result<(), String> {
+    if latitude > 90.0 {
+        return Err("latitude out of range -90:90".to_string());
+    }
+
+    if latitude < -90.0 {
+        return Err("latitude out of range -90:90".to_string());
+    }
+
+    return Ok(());
+}
+
+/// ```
+/// assert!(validation::validate_longitude(10.0).is_ok());
+/// assert!(validation::validate_longitude(-10.0).is_ok());
+/// assert!(validation::validate_longitude(181.0).is_err());
+/// assert!(validation::validate_longitude(-181.0).is_err());
+/// ```
+pub fn validate_longitude(latitude: f64) -> Result<(), String> {
+    if latitude > 180.0 {
+        return Err("longitude out of range -180:180".to_string());
+    }
+
+    if latitude < -180.0 {
+        return Err("longitude out of range -180:180".to_string());
+    }
+
+    return Ok(());
+}
+
+/// ```
+/// assert!(validation::validate_location_name("Test :D").is_ok());
+/// assert!(validation::validate_location_name("💜").is_ok());
+/// assert!(validation::validate_location_name(&"💜".repeat(24)).is_ok());
+/// assert!(validation::validate_location_name(&"💜".repeat(25)).is_err());
+/// ```
+pub fn validate_location_name(text: &str) -> Result<(), String> {
+    if text.len() > 96 {
+        return Err("location_name too long - max 96 chars".to_string());
+    }
+
+    if text.len() < 4 {
+        return Err("location_name too short - min 4 chars".to_string());
+    }
+
+    return Ok(());
+}
+
+/// ```
+/// assert!(validation::validate_stars(0).is_ok());
+/// assert!(validation::validate_stars(5).is_ok());
+/// assert!(validation::validate_stars(6).is_err());
+/// ```
+pub fn validate_stars(stars: u8) -> Result<(), String> {
+    if stars > 5 {
+        return Err("too many stars".to_string());
     }
 
     return Ok(());

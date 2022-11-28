@@ -3,7 +3,7 @@ use crate::{
     db::{create_reply, get_review},
 };
 use actix_web::{
-    error::ErrorInternalServerError,
+    error::{ErrorBadRequest, ErrorInternalServerError},
     post,
     web::{Data, Json, ReqData},
     HttpResponse, Responder, Result,
@@ -25,8 +25,8 @@ pub async fn add_reply(
     pool: Data<MySqlPool>,
     add_reply_request: Json<AddReplyRequest>,
 ) -> Result<impl Responder> {
-    if let Err(validation_error) = validate_reply_text(&add_reply_request.text) {
-        return Err(ErrorInternalServerError(validation_error));
+    if let Err(err) = validate_reply_text(&add_reply_request.text) {
+        return Err(ErrorBadRequest(err));
     }
 
     if let Err(_) = get_review(&pool, &authenticated_user.0, &add_reply_request.review_id).await {

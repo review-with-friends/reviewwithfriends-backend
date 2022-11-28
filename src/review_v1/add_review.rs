@@ -3,22 +3,24 @@ use crate::{
     db::{create_review, Review},
 };
 use actix_web::{
-    error::ErrorInternalServerError,
+    error::{ErrorBadRequest, ErrorInternalServerError},
     post,
     web::{Data, Json, ReqData},
     HttpResponse, Responder, Result,
 };
-use chrono::NaiveDateTime;
+use chrono::{NaiveDateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use uuid::Uuid;
+use validation::{
+    validate_category, validate_latitude, validate_location_name, validate_longitude,
+    validate_review_text, validate_stars,
+};
 
 use super::review_types::ReviewPub;
 
 #[derive(Deserialize, Serialize)]
 pub struct AddReviewRequest {
-    pub created: NaiveDateTime,
-    pub pic_id: Option<String>,
     pub category: String,
     pub text: String,
     pub stars: u8,
@@ -35,6 +37,30 @@ pub async fn add_review(
     pool: Data<MySqlPool>,
     add_review_request: Json<AddReviewRequest>,
 ) -> Result<impl Responder> {
+    if let Err(err) = validate_review_text(&add_review_request.text) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
+    if let Err(err) = validate_category(&add_review_request.category) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
+    if let Err(err) = validate_longitude(add_review_request.longitude) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
+    if let Err(err) = validate_latitude(add_review_request.latitude) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
+    if let Err(err) = validate_location_name(&add_review_request.location_name) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
+    if let Err(err) = validate_stars(add_review_request.stars) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
     // TODO: Validate incoming things are within the range.
     let review = map_review_to_db(&add_review_request, &authenticated_user.0);
 
@@ -54,8 +80,8 @@ fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
     Review {
         id: Uuid::new_v4().to_string(),
         user_id: user_id.to_string(),
-        created: request.created,
-        pic_id: request.pic_id.clone(),
+        created: Utc::now().naive_utc(),
+        pic_id: None,
         category: request.category.clone(),
         text: request.text.clone(),
         stars: request.stars,

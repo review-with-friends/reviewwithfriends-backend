@@ -3,14 +3,14 @@ use crate::{
     db::{get_review, update_review, Review},
 };
 use actix_web::{
-    error::{ErrorInternalServerError, ErrorNotFound},
+    error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
     post,
     web::{Data, Json, ReqData},
     HttpResponse, Responder, Result,
 };
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
-use validation::validate_reply_text;
+use validation::{validate_reply_text, validate_stars};
 
 #[derive(Deserialize, Serialize)]
 pub struct EditReviewRequest {
@@ -63,8 +63,12 @@ pub async fn edit_review(
         None => new_text = review.text,
     }
 
-    if let Err(validation_error) = validate_reply_text(&new_text) {
-        return Err(ErrorInternalServerError(validation_error));
+    if let Err(err) = validate_reply_text(&new_text) {
+        return Err(ErrorBadRequest(err));
+    }
+
+    if let Err(err) = validate_stars(new_stars) {
+        return Err(ErrorBadRequest(err));
     }
 
     let update_res =

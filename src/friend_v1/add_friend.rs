@@ -69,6 +69,7 @@ pub async fn add_friend(
                         &send_request.friend_id,
                     )
                     .await;
+
                     match create_res {
                         Ok(_) => return Ok(HttpResponse::Ok()),
                         Err(_) => {

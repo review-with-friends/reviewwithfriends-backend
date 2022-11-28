@@ -3,7 +3,7 @@ use crate::{
     db::{create_like, get_review, is_already_liked},
 };
 use actix_web::{
-    error::ErrorInternalServerError,
+    error::{ErrorInternalServerError, ErrorNotFound},
     post,
     web::{Data, Query, ReqData},
     HttpResponse, Responder, Result,
@@ -23,10 +23,15 @@ pub async fn like_review(
     pool: Data<MySqlPool>,
     like_review_request: Query<LikeReviewRequest>,
 ) -> Result<impl Responder> {
-    if let Err(_) = get_review(&pool, &authenticated_user.0, &like_review_request.review_id).await {
-        return Err(ErrorInternalServerError(
-            "unable to find review".to_string(),
-        ));
+    let review_res = get_review(&pool, &authenticated_user.0, &like_review_request.review_id).await;
+
+    match review_res {
+        Ok(review_opt) => {
+            if let None = review_opt {
+                return Err(ErrorNotFound("could not find review"));
+            }
+        }
+        Err(_) => return Err(ErrorInternalServerError("failed to get review")),
     }
 
     let already_created_res =
