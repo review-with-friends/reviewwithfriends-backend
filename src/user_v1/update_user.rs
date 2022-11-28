@@ -10,6 +10,7 @@ use actix_web::{
 };
 use serde::Deserialize;
 use sqlx::MySqlPool;
+use validation::{validate_display_name, validate_name};
 
 #[derive(Deserialize)]
 pub struct UpdateUserRequest {
@@ -54,6 +55,14 @@ pub async fn update_user(
     match &update_request.name {
         Some(name) => new_name = name.to_string(),
         None => new_name = user.name,
+    }
+
+    if let Err(err) = validate_display_name(&new_display_name) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
+    if let Err(err) = validate_name(&new_name) {
+        return Err(ErrorBadRequest(err.to_string()));
     }
 
     let existing_user_res = does_user_exist_by_name(&pool, &new_name).await;

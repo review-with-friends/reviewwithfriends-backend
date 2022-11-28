@@ -150,3 +150,74 @@ pub fn validate_reply_text(text: &str) -> Result<(), String> {
 
     return Ok(());
 }
+
+/// ```
+/// assert!(validation::validate_name("Test :D").is_err())
+/// ```
+/// ```
+/// assert!(validation::validate_name("test").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_name("1234").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_name("1234💜").is_err())
+/// ```
+/// ```
+/// assert!(validation::validate_name("💜").is_err())
+/// ```
+pub fn validate_name(text: &str) -> Result<(), String> {
+    if text.len() > 26 {
+        return Err("name too long - max 26 chars".to_string());
+    }
+
+    if text.len() < 4 {
+        return Err("name too short - min 4 chars".to_string());
+    }
+
+    if !text.is_ascii() {
+        return Err("0-9 and a-z only".to_string());
+    }
+
+    if !text
+        .chars()
+        .all(|c| c.is_ascii_alphabetic() || c.is_ascii_digit())
+    {
+        return Err("not all are digits or char".to_string());
+    }
+
+    return Ok(());
+}
+
+/// ```
+/// assert!(validation::validate_display_name("Test :D").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_display_name("TES💜T").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_display_name("TES💜T  2321").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_display_name("TES").is_err())
+/// ```
+/// ```
+/// assert!(validation::validate_display_name("💜").is_ok())
+/// ```
+/// ```
+/// assert!(validation::validate_display_name("💜💜💜💜💜💜💜").is_err())
+/// ```
+pub fn validate_display_name(text: &str) -> Result<(), String> {
+    println!("{}", text.len());
+    if text.len() > 26 {
+        return Err(
+            "display name too long - max 26 chars (emojis count for 2-4 chars)".to_string(),
+        );
+    }
+
+    if text.len() < 4 {
+        return Err("display name too short - min 4 chars".to_string());
+    }
+
+    return Ok(());
+}
