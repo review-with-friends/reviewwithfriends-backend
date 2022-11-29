@@ -129,7 +129,13 @@ async fn send_auth(
     const REQUEST_URL: &str = "https://api.twilio.com/2010-04-01/Accounts/AC0094c61aa39fc9c673130f6e28e43bad/Messages.json";
 
     let mut params = HashMap::new();
-    params.insert("Body", format!("{} is your Mob auth code!", code));
+    params.insert(
+        "Body",
+        format!(
+            "Welcome to Bout you filthy animal! Here is your code: {} ",
+            code
+        ),
+    );
     params.insert("From", "+17246134841".to_string());
     params.insert("To", format!("+{}", phone));
 
