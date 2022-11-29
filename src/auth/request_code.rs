@@ -131,10 +131,7 @@ async fn send_auth(
     let mut params = HashMap::new();
     params.insert(
         "Body",
-        format!(
-            "Welcome to Bout you filthy animal! Here is your code: {} ",
-            code
-        ),
+        format!("Welcome to Bout! Here is your verification code: {} ", code),
     );
     params.insert("From", "+17246134841".to_string());
     params.insert("To", format!("+{}", phone));
