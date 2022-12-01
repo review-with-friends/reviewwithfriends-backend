@@ -1,7 +1,5 @@
-use chrono::NaiveDateTime;
-use serde::Serialize;
-
 use crate::db::User;
+use serde::Serialize;
 
 /// DB Types are purposefuly not serialized.
 /// We require DTO objects suffixed with 'Pub'
@@ -11,7 +9,7 @@ pub struct UserPub {
     pub id: String,
     pub name: String,
     pub display_name: String,
-    pub created: NaiveDateTime,
+    pub created: i64,
     pub pic_id: String,
 }
 
@@ -21,7 +19,7 @@ impl From<User> for UserPub {
             id: user.id,
             name: user.name,
             display_name: user.display_name,
-            created: user.created,
+            created: user.created.timestamp_millis(),
             pic_id: user.pic_id,
         }
     }

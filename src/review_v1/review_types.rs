@@ -1,7 +1,5 @@
-use chrono::NaiveDateTime;
-use serde::Serialize;
-
 use crate::db::Review;
+use serde::Serialize;
 
 /// DB Types are purposefuly not serialized.
 /// We require DTO objects suffixed with 'Pub'
@@ -10,7 +8,7 @@ use crate::db::Review;
 pub struct ReviewPub {
     pub id: String,
     pub user_id: String,
-    pub created: NaiveDateTime,
+    pub created: i64,
     pub pic_id: Option<String>,
     pub category: String,
     pub text: String,
@@ -26,7 +24,7 @@ impl From<Review> for ReviewPub {
         ReviewPub {
             id: review.id,
             user_id: review.user_id,
-            created: review.created,
+            created: review.created.timestamp_millis(),
             pic_id: review.pic_id,
             category: review.category,
             text: review.text,
