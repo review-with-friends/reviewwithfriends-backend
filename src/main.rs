@@ -28,7 +28,7 @@ use review_v1::{
 };
 use sqlx::MySqlPool;
 use std::{collections::HashMap, env, time::Duration};
-use user_v1::{get_user_by_id, get_user_by_name, search_user_by_name, update_user};
+use user_v1::{get_me, get_user_by_id, get_user_by_name, search_user_by_name, update_user};
 
 mod auth;
 mod authorization;
@@ -117,7 +117,8 @@ async fn main() -> std::io::Result<()> {
                                 .service(search_user_by_name)
                                 .service(get_user_by_id)
                                 .service(get_user_by_name)
-                                .service(update_user),
+                                .service(update_user)
+                                .service(get_me),
                         )
                         .service(
                             web::scope("/like")
@@ -146,7 +147,7 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:49581/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:58594/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),
