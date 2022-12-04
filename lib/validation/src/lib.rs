@@ -13,7 +13,7 @@ use jpeg_decoder::Decoder;
 /// assert!(validation::validate_code("").is_err());
 /// ```
 pub fn validate_code(code: &str) -> Result<(), String> {
-    if code.len() != 9 {
+    if code.chars().count() != 9 {
         return Err("incorrect code length".to_string());
     }
 
@@ -39,7 +39,7 @@ pub fn validate_code(code: &str) -> Result<(), String> {
 /// assert!(validation::validate_phone("+44445434434").is_err());
 /// ```
 pub fn validate_phone(phone: &str) -> Result<(), String> {
-    if phone.len() != 11 {
+    if phone.chars().count() != 11 {
         return Err("incorrect phone length".to_string());
     }
 
@@ -116,7 +116,7 @@ pub fn validate_review_pic(bytes: &[u8]) -> Result<(), String> {
 /// assert!(validation::validate_reply_text(&"1".repeat(450)).is_ok());
 /// ```
 pub fn validate_reply_text(text: &str) -> Result<(), String> {
-    if text.len() > 450 {
+    if text.chars().count() > 450 {
         return Err("text too long".to_string());
     }
 
@@ -129,7 +129,7 @@ pub fn validate_reply_text(text: &str) -> Result<(), String> {
 /// assert!(validation::validate_reply_text(&"1".repeat(450)).is_ok());
 /// ```
 pub fn validate_review_text(text: &str) -> Result<(), String> {
-    if text.len() > 450 {
+    if text.chars().count() > 450 {
         return Err("text too long".to_string());
     }
 
@@ -144,11 +144,11 @@ pub fn validate_review_text(text: &str) -> Result<(), String> {
 /// assert!(validation::validate_name("💜").is_err());
 /// ```
 pub fn validate_name(text: &str) -> Result<(), String> {
-    if text.len() > 26 {
+    if text.chars().count() > 26 {
         return Err("name too long - max 26 chars".to_string());
     }
 
-    if text.len() < 4 {
+    if text.chars().count() < 4 {
         return Err("name too short - min 4 chars".to_string());
     }
 
@@ -171,18 +171,18 @@ pub fn validate_name(text: &str) -> Result<(), String> {
 /// assert!(validation::validate_display_name("TES💜T").is_ok());
 /// assert!(validation::validate_display_name("TES💜T  2321").is_ok());
 /// assert!(validation::validate_display_name("TES").is_err());
-/// assert!(validation::validate_display_name("💜").is_ok());
-/// assert!(validation::validate_display_name("💜💜💜💜💜💜💜").is_err());
+/// assert!(validation::validate_display_name("💜").is_err());
+/// assert!(validation::validate_display_name(&"💜".repeat(27)).is_err());
 /// ```
 pub fn validate_display_name(text: &str) -> Result<(), String> {
     println!("{}", text.len());
-    if text.len() > 26 {
+    if text.chars().count() > 26 {
         return Err(
             "display name too long - max 26 chars (emojis count for 2-4 chars)".to_string(),
         );
     }
 
-    if text.len() < 4 {
+    if text.chars().count() < 4 {
         return Err("display name too short - min 4 chars".to_string());
     }
 
@@ -191,15 +191,16 @@ pub fn validate_display_name(text: &str) -> Result<(), String> {
 
 /// ```
 /// assert!(validation::validate_category("Test :D").is_ok());
-/// assert!(validation::validate_display_name("💜").is_ok());
-/// assert!(validation::validate_display_name("💜💜💜💜💜💜💜💜💜💜💜").is_err());
+/// assert!(validation::validate_display_name("💜").is_err());
+/// assert!(validation::validate_display_name(&"💜".repeat(31)).is_err());
+/// assert!(validation::validate_display_name(&"💜".repeat(26)).is_ok());
 /// ```
 pub fn validate_category(text: &str) -> Result<(), String> {
-    if text.len() > 30 {
+    if text.chars().count() > 30 {
         return Err("category too long - max 30 chars".to_string());
     }
 
-    if text.len() < 4 {
+    if text.chars().count() < 4 {
         return Err("category too short - min 4 chars".to_string());
     }
 
@@ -244,16 +245,16 @@ pub fn validate_longitude(latitude: f64) -> Result<(), String> {
 
 /// ```
 /// assert!(validation::validate_location_name("Test :D").is_ok());
-/// assert!(validation::validate_location_name("💜").is_ok());
+/// assert!(validation::validate_location_name("💜").is_err());
 /// assert!(validation::validate_location_name(&"💜".repeat(24)).is_ok());
-/// assert!(validation::validate_location_name(&"💜".repeat(25)).is_err());
+/// assert!(validation::validate_location_name(&"💜".repeat(97)).is_err());
 /// ```
 pub fn validate_location_name(text: &str) -> Result<(), String> {
-    if text.len() > 96 {
+    if text.chars().count() > 96 {
         return Err("location_name too long - max 96 chars".to_string());
     }
 
-    if text.len() < 4 {
+    if text.chars().count() < 4 {
         return Err("location_name too short - min 4 chars".to_string());
     }
 

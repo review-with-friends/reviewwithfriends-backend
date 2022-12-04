@@ -165,7 +165,7 @@ fn get_new_user_name() -> String {
 
     for _ in 0..9 {
         let num = rng.gen_range(0..9);
-        user_name.push(char::from_u32(num).unwrap());
+        user_name.push_str(&num.to_string());
     }
 
     return user_name;
