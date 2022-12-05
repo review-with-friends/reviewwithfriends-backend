@@ -65,11 +65,11 @@ pub fn validate_profile_pic(bytes: &[u8]) -> Result<(), String> {
     match decode_res {
         Ok(_) => {
             if let Some(metadata) = decoder.info() {
-                if metadata.height > 500 {
+                if metadata.height > 512 {
                     return Err("image too tall".to_string());
                 }
 
-                if metadata.width > 500 {
+                if metadata.width > 512 {
                     return Err("image too wide".to_string());
                 }
 
@@ -93,11 +93,11 @@ pub fn validate_review_pic(bytes: &[u8]) -> Result<(), String> {
     match decode_res {
         Ok(_) => {
             if let Some(metadata) = decoder.info() {
-                if metadata.height > 3000 {
+                if metadata.height > 4032 {
                     return Err("image too tall".to_string());
                 }
 
-                if metadata.width > 4000 {
+                if metadata.width > 3024 {
                     return Err("image too wide".to_string());
                 }
 

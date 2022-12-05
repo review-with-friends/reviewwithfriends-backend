@@ -1,6 +1,6 @@
 [package]
 name = "bout-backend"
-version = "0.2.6-alpha"
+version = "0.2.7-alpha"
 edition = "2021"
 
 [dependencies]
