@@ -54,7 +54,7 @@ pub async fn update_user(
 
     match &update_request.name {
         Some(name) => new_name = name.to_string(),
-        None => new_name = user.name,
+        None => new_name = user.name.clone(),
     }
 
     if let Err(err) = validate_display_name(&new_display_name) {
@@ -65,15 +65,17 @@ pub async fn update_user(
         return Err(ErrorBadRequest(err.to_string()));
     }
 
-    let existing_user_res = does_user_exist_by_name(&pool, &new_name).await;
+    if new_name != user.name {
+        let existing_user_res = does_user_exist_by_name(&pool, &new_name).await;
 
-    match existing_user_res {
-        Ok(exists) => {
-            if exists {
-                return Err(ErrorBadRequest("user already exists"));
+        match existing_user_res {
+            Ok(exists) => {
+                if exists {
+                    return Err(ErrorBadRequest("user already exists"));
+                }
             }
+            Err(_) => return Err(ErrorInternalServerError("failed to get existing users")),
         }
-        Err(_) => return Err(ErrorInternalServerError("failed to get existing users")),
     }
 
     let update_res =
