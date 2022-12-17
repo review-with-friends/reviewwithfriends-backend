@@ -231,26 +231,32 @@ pub async fn get_reviews_from_location(
     client: &MySqlPool,
     user_id: &str,
     name: &str,
-    latitude: f64,
-    longitude: f64,
+    latitude_low: f64,
+    latitude_high: f64,
+    longitude_low: f64,
+    longitude_high: f64,
 ) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
     let rows = sqlx::query(
         "SELECT r1.* FROM review as r1
         INNER JOIN friend as f1 ON f1.friend_id = r1.user_id 
-        WHERE f1.user_id = ? AND r1.location_name = ? AND r1.latitude = ? AND r1.longitude = ? 
+        WHERE f1.user_id = ? AND r1.location_name = ? AND r1.latitude BETWEEN ? AND ? AND r1.longitude BETWEEN ? AND ?
         UNION
         SELECT r2.* FROM review as r2
-        WHERE r2.user_id = ? AND r2.location_name = ? AND r2.latitude = ? AND r2.longitude = ?
+        WHERE r2.user_id = ? AND r2.location_name = ? AND r2.latitude BETWEEN ? AND ? AND r2.longitude BETWEEN ? AND ?
         ",
     )
     .bind(user_id)
     .bind(name)
-    .bind(latitude)
-    .bind(longitude)
+    .bind(latitude_low)
+    .bind(latitude_high)
+    .bind(longitude_low)
+    .bind(longitude_high)
     .bind(user_id)
     .bind(name)
-    .bind(latitude)
-    .bind(longitude)
+    .bind(latitude_low)
+    .bind(latitude_high)
+    .bind(longitude_low)
+    .bind(longitude_high)
     .fetch_all(client)
     .await?;
 

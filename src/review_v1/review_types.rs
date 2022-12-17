@@ -1,6 +1,8 @@
 use crate::db::Review;
 use serde::Serialize;
 
+pub const ACCURACY_SIZE: f64 = 0.001;
+
 /// DB Types are purposefuly not serialized.
 /// We require DTO objects suffixed with 'Pub'
 /// to trim database object appropriately.

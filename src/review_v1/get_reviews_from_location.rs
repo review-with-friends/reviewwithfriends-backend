@@ -8,7 +8,7 @@ use actix_web::{
 use serde::Deserialize;
 use sqlx::MySqlPool;
 
-use super::review_types::ReviewPub;
+use super::review_types::{ReviewPub, ACCURACY_SIZE};
 
 #[derive(Deserialize)]
 pub struct ReviewLocationRequest {
@@ -17,7 +17,9 @@ pub struct ReviewLocationRequest {
     name: String,
 }
 
-/// Gets reviews you are able to see that qualify via exact location.
+/// Gets reviews you are able to see that qualify via close location.
+/// Accuracy required is exact for location name; but +- a range around
+/// the given coordinates.
 #[get("/reviews_from_loc")]
 pub async fn get_reviews_from_loc(
     authenticated_user: ReqData<AuthenticatedUser>,
@@ -28,8 +30,10 @@ pub async fn get_reviews_from_loc(
         &pool,
         &authenticated_user.0,
         &review_location_request.name,
-        review_location_request.latitude,
-        review_location_request.longitude,
+        review_location_request.latitude - ACCURACY_SIZE,
+        review_location_request.latitude + ACCURACY_SIZE,
+        review_location_request.longitude - ACCURACY_SIZE,
+        review_location_request.longitude + ACCURACY_SIZE,
     )
     .await;
 
