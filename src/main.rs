@@ -1,3 +1,4 @@
+use actix_web::dev::Service;
 use actix_web::{
     web::{self, Data, PayloadConfig},
     App, HttpServer,
@@ -8,6 +9,7 @@ use friend_v1::{
     accept_friend, add_friend, cancel_friend, decline_friend, get_friends, get_ignored_friends,
     get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
 };
+use futures_util::FutureExt;
 use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
 use likes_v1::{get_likes, like_review, unlike_review};
@@ -16,7 +18,8 @@ use opentelemetry::sdk::{
     trace::{self, Sampler},
     Resource,
 };
-use opentelemetry::KeyValue;
+use opentelemetry::trace::{Span, Status, Tracer};
+use opentelemetry::{global, KeyValue};
 use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, get_review_pic, remove_review_pic};
 use ping_routes::ping;
@@ -78,6 +81,36 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(client.clone()))
             .app_data(Data::new(http_client.clone()))
             .wrap(Authorization)
+            .wrap_fn(|req, srv| {
+                let uri = req.uri().clone();
+                srv.call(req).map(move |res| {
+                    if let Ok(result) = res {
+                        if result.response().status().is_client_error() {
+                            let tracer = global::tracer("exception");
+                            let mut span = tracer.start("client error");
+                            span.set_status(Status::error(format!(
+                                "HTTP {} {}",
+                                result.response().status().as_u16(),
+                                uri
+                            )));
+                        }
+
+                        if result.response().status().is_server_error() {
+                            let tracer = global::tracer("exception");
+                            let mut span = tracer.start("server error");
+                            span.set_status(Status::error(format!(
+                                "HTTP {} {}",
+                                result.response().status().as_u16(),
+                                uri
+                            )));
+                        }
+
+                        return Ok(result);
+                    } else {
+                        return res;
+                    }
+                })
+            })
             .service(web::scope("/ping").service(ping))
             .service(web::scope("/auth").service(request_code).service(sign_in))
             .service(
