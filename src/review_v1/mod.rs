@@ -1,7 +1,8 @@
 pub use get_reviews_from_location::*;
 pub mod get_reviews_from_location;
 
-mod review_types;
+pub use review_types::*;
+pub mod review_types;
 
 pub use add_review::*;
 pub mod add_review;
@@ -17,3 +18,6 @@ pub use remove_review::*;
 
 pub mod edit_review;
 pub use edit_review::*;
+
+pub mod get_review;
+pub use get_review::*;

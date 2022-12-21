@@ -1,4 +1,5 @@
-mod reply_types;
+pub mod reply_types;
+pub use reply_types::*;
 
 pub mod get_replies;
 pub use get_replies::*;

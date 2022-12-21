@@ -23,8 +23,8 @@ use ping_routes::ping;
 use reply_v1::{add_reply, get_replies, remove_reply};
 use reqwest::ClientBuilder;
 use review_v1::{
-    add_review, edit_review, get_latest, get_reviews_from_loc, get_reviews_from_map_bounds,
-    remove_review,
+    add_review, edit_review, get_latest, get_review_by_id, get_reviews_from_loc,
+    get_reviews_from_map_bounds, remove_review,
 };
 use sqlx::MySqlPool;
 use std::{collections::HashMap, env, time::Duration};
@@ -32,6 +32,7 @@ use user_v1::{get_me, get_user_by_id, get_user_by_name, search_user_by_name, upd
 
 mod auth;
 mod authorization;
+mod compound_types;
 mod db;
 mod friend_v1;
 mod likes_v1;
@@ -110,6 +111,7 @@ async fn main() -> std::io::Result<()> {
                                 .service(get_reviews_from_loc)
                                 .service(add_review)
                                 .service(remove_review)
+                                .service(get_review_by_id)
                                 .service(edit_review),
                         )
                         .service(
@@ -147,7 +149,7 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:58594/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:49391/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),

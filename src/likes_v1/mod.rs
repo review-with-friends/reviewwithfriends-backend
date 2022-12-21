@@ -7,4 +7,5 @@ pub mod like_review;
 pub mod unlike_review;
 pub use unlike_review::*;
 
-mod like_types;
+pub mod like_types;
+pub use like_types::*;

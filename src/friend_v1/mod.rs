@@ -28,4 +28,5 @@ pub use get_outgoing_friends::*;
 pub mod remove_friend;
 pub use remove_friend::*;
 
-mod friend_types;
+pub mod friend_types;
+pub use friend_types::*;
