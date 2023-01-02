@@ -190,24 +190,6 @@ pub fn validate_display_name(text: &str) -> Result<(), String> {
 }
 
 /// ```
-/// assert!(validation::validate_category("Test :D").is_ok());
-/// assert!(validation::validate_display_name("💜").is_err());
-/// assert!(validation::validate_display_name(&"💜".repeat(31)).is_err());
-/// assert!(validation::validate_display_name(&"💜".repeat(26)).is_ok());
-/// ```
-pub fn validate_category(text: &str) -> Result<(), String> {
-    if text.chars().count() > 30 {
-        return Err("category too long - max 30 chars".to_string());
-    }
-
-    if text.chars().count() < 4 {
-        return Err("category too short - min 4 chars".to_string());
-    }
-
-    return Ok(());
-}
-
-/// ```
 /// assert!(validation::validate_latitude(10.0).is_ok());
 /// assert!(validation::validate_latitude(-10.0).is_ok());
 /// assert!(validation::validate_latitude(91.0).is_err());

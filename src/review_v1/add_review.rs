@@ -13,15 +13,14 @@ use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use uuid::Uuid;
 use validation::{
-    validate_category, validate_latitude, validate_location_name, validate_longitude,
-    validate_review_text, validate_stars,
+    validate_latitude, validate_location_name, validate_longitude, validate_review_text,
+    validate_stars,
 };
 
 use super::review_types::ReviewPub;
 
 #[derive(Deserialize, Serialize)]
 pub struct AddReviewRequest {
-    pub category: String,
     pub text: String,
     pub stars: u8,
     pub location_name: String,
@@ -38,10 +37,6 @@ pub async fn add_review(
     add_review_request: Json<AddReviewRequest>,
 ) -> Result<impl Responder> {
     if let Err(err) = validate_review_text(&add_review_request.text) {
-        return Err(ErrorBadRequest(err.to_string()));
-    }
-
-    if let Err(err) = validate_category(&add_review_request.category) {
         return Err(ErrorBadRequest(err.to_string()));
     }
 
@@ -82,7 +77,7 @@ fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
         user_id: user_id.to_string(),
         created: Utc::now().naive_utc(),
         pic_id: None,
-        category: request.category.clone(),
+        category: "".to_string(),
         text: request.text.clone(),
         stars: request.stars,
         location_name: request.location_name.clone(),

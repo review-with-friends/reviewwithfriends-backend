@@ -96,8 +96,8 @@ pub async fn request_code(
         }
     }
 
-    let tracer = global::tracer("phone auth request");
-    let mut span = tracer.start("twilio call");
+    let tracer = global::tracer("exception");
+    let mut span = tracer.start("phone auth failure");
 
     let auth_res = send_auth(
         &http_client,
