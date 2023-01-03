@@ -83,7 +83,7 @@ pub fn validate_profile_pic(bytes: &[u8]) -> Result<(), String> {
 }
 
 pub fn validate_review_pic(bytes: &[u8]) -> Result<(), String> {
-    if bytes.len() > 2_250_000 {
+    if bytes.len() > 3_250_000 {
         return Err("pic too large".to_string());
     }
 
