@@ -80,6 +80,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(pool.clone()))
             .app_data(Data::new(client.clone()))
             .app_data(Data::new(http_client.clone()))
+            .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
             .wrap(Authorization)
             .wrap_fn(|req, srv| {
                 let uri = req.uri().clone();
@@ -166,8 +167,7 @@ async fn main() -> std::io::Result<()> {
                                 .service(get_replies)
                                 .service(add_reply)
                                 .service(remove_reply),
-                        )
-                        .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT)),
+                        ),
                 ),
             )
     })
