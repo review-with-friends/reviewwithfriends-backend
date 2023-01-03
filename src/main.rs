@@ -55,7 +55,7 @@ pub struct Config {
     newrelic_key: String,
 }
 
-const PIC_CONFIG_LIMIT: usize = 2_262_144;
+const PIC_CONFIG_LIMIT: usize = 4_262_144;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
