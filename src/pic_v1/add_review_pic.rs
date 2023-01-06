@@ -68,6 +68,7 @@ pub async fn add_review_pic(
                     body: Some(ByteStream::from(<Vec<u8>>::from(pic_bytes))),
                     bucket: "bout".to_string(),
                     key: pic.id.clone(),
+                    acl: Some("public-read".to_string()),
                     ..Default::default()
                 })
                 .await
