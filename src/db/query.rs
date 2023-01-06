@@ -319,21 +319,21 @@ pub async fn get_latest_reviews(
     page: u32,
 ) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
     const PAGE_SIZE: u32 = 5;
+
     let lower_count = page * PAGE_SIZE;
-    let higher_count = lower_count + PAGE_SIZE;
+
     let rows = sqlx::query(
         "SELECT * FROM (SELECT r1.* FROM review as r1
         INNER JOIN friend as f1 ON f1.friend_id = r1.user_id 
         WHERE f1.user_id = ?
         UNION
         SELECT r2.* FROM review as r2
-        WHERE r2.user_id = ?) as res ORDER BY res.created DESC LIMIT ? OFFSET ?
-        ",
+        WHERE r2.user_id = ?) as res ORDER BY res.created DESC LIMIT ? OFFSET ?",
     )
     .bind(user_id)
     .bind(user_id)
+    .bind(PAGE_SIZE)
     .bind(lower_count)
-    .bind(higher_count)
     .fetch_all(client)
     .await?;
 
