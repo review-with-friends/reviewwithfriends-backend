@@ -318,7 +318,7 @@ pub async fn get_latest_reviews(
     user_id: &str,
     page: u32,
 ) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
-    const PAGE_SIZE: u32 = 20;
+    const PAGE_SIZE: u32 = 5;
     let lower_count = page * PAGE_SIZE;
     let higher_count = lower_count + PAGE_SIZE;
     let rows = sqlx::query(
