@@ -327,7 +327,7 @@ pub async fn get_latest_reviews(
         WHERE f1.user_id = ?
         UNION
         SELECT r2.* FROM review as r2
-        WHERE r2.user_id = ?) as res ORDER BY res.created DESC LIMIT ?,?
+        WHERE r2.user_id = ?) as res ORDER BY res.created DESC LIMIT ? OFFSET ?
         ",
     )
     .bind(user_id)
