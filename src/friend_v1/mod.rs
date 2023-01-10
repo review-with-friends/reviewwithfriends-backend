@@ -30,3 +30,6 @@ pub use remove_friend::*;
 
 pub mod friend_types;
 pub use friend_types::*;
+
+pub mod full_friends;
+pub use full_friends::*;

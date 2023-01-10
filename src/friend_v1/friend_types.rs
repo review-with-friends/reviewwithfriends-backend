@@ -1,6 +1,15 @@
 use crate::db::{Friend, FriendRequest};
 use serde::Serialize;
 
+/// All in one return type for fetching all friend information.
+#[derive(Serialize)]
+pub struct FullFriendsPub {
+    pub friends: Vec<FriendPub>,
+    pub incoming_requests: Vec<FriendRequestPub>,
+    pub outgoing_requests: Vec<FriendRequestPub>,
+    pub ignored_requests: Vec<FriendRequestPub>,
+}
+
 /// DB Types are purposefuly not serialized.
 /// We require DTO objects suffixed with 'Pub'
 /// to trim database object appropriately.

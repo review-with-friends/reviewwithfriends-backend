@@ -6,8 +6,8 @@ use actix_web::{
 use auth::*;
 use authorization::Authorization;
 use friend_v1::{
-    accept_friend, add_friend, cancel_friend, decline_friend, get_friends, get_ignored_friends,
-    get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
+    accept_friend, add_friend, cancel_friend, decline_friend, full_friends, get_friends,
+    get_ignored_friends, get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
 };
 use futures_util::FutureExt;
 use images::create_s3_client;
@@ -119,6 +119,7 @@ async fn main() -> std::io::Result<()> {
                     web::scope("/v1")
                         .service(
                             web::scope("/friends")
+                                .service(full_friends)
                                 .service(get_friends)
                                 .service(get_outgoing_friends)
                                 .service(get_incoming_friends)
