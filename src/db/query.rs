@@ -277,9 +277,9 @@ pub async fn get_reviews_from_bounds(
     longitude_east: f64,
     page: u32,
 ) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
-    const PAGE_SIZE: u32 = 500;
+    const PAGE_SIZE: u32 = 100;
     let lower_count = page * PAGE_SIZE;
-    let higher_count = lower_count + PAGE_SIZE;
+
     let rows = sqlx::query(
         "SELECT * FROM (SELECT r1.* FROM review as r1
         INNER JOIN friend as f1 ON f1.friend_id = r1.user_id
@@ -288,7 +288,7 @@ pub async fn get_reviews_from_bounds(
         UNION ALL
         SELECT r2.* FROM review as r2
         WHERE r2.user_id = ? 
-        AND r2.latitude <= ? AND r2.latitude >= ? AND r2.longitude >= ? AND r2.longitude <= ?) AS res LIMIT ?,?",
+        AND r2.latitude <= ? AND r2.latitude >= ? AND r2.longitude >= ? AND r2.longitude <= ?) AS res LIMIT ? OFFSET ?",
     )
     .bind(user_id)
     .bind(latitude_north)
@@ -300,8 +300,63 @@ pub async fn get_reviews_from_bounds(
     .bind(latitude_south)
     .bind(longitude_west)
     .bind(longitude_east)
+    .bind(PAGE_SIZE)
     .bind(lower_count)
-    .bind(higher_count)
+    .fetch_all(client)
+    .await?;
+
+    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
+
+    return Ok(out);
+}
+
+/// Gets reviews from a given bounding box.
+/// Accounts for the passed user_id's friends and own reviews.
+/// ## Results are paged.
+pub async fn get_reviews_from_bounds_with_exclusions(
+    client: &MySqlPool,
+    user_id: &str,
+    latitude_north: f64,
+    latitude_south: f64,
+    longitude_west: f64,
+    longitude_east: f64,
+    latitude_north_e: f64,
+    latitude_south_e: f64,
+    longitude_west_e: f64,
+    longitude_east_e: f64,
+    page: u32,
+) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+    const PAGE_SIZE: u32 = 100;
+    let lower_count = page * PAGE_SIZE;
+
+    let rows = sqlx::query(
+        "SELECT * FROM (SELECT r1.* FROM review as r1
+        INNER JOIN friend as f1 ON f1.friend_id = r1.user_id
+        WHERE f1.user_id = ? 
+        AND r1.latitude <= ? AND r1.latitude >= ? AND r1.longitude >= ? AND r1.longitude <= ?
+        UNION ALL
+        SELECT r2.* FROM review as r2
+        WHERE r2.user_id = ? 
+        AND r2.latitude <= ? AND r2.latitude >= ? AND r2.longitude >= ? AND r2.longitude <= ?) AS res
+        WHERE NOT (res.latitude <= ? AND res.latitude >= ? AND res.longitude >= ? AND res.longitude <= ?)
+        LIMIT ? OFFSET ?",
+    )
+    .bind(user_id)
+    .bind(latitude_north)
+    .bind(latitude_south)
+    .bind(longitude_west)
+    .bind(longitude_east)
+    .bind(user_id)
+    .bind(latitude_north)
+    .bind(latitude_south)
+    .bind(longitude_west)
+    .bind(longitude_east)
+    .bind(latitude_north_e)
+    .bind(latitude_south_e)
+    .bind(longitude_west_e)
+    .bind(longitude_east_e)
+    .bind(PAGE_SIZE)
+    .bind(lower_count)
     .fetch_all(client)
     .await?;
 

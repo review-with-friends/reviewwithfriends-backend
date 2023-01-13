@@ -374,7 +374,7 @@ dependencies = [
 
 [[package]]
 name = "bout-backend"
-version = "0.2.21-alpha"
+version = "0.2.22-alpha"
 dependencies = [
  "actix-rt",
  "actix-web",
