@@ -11,7 +11,6 @@ use actix_web::{
     web::{Data, Query},
     Responder, Result,
 };
-
 use jwt::mint_jwt;
 use serde::Deserialize;
 use sqlx::MySqlPool;
@@ -23,7 +22,11 @@ pub struct SignInRequest {
     code: String,
 }
 
-/// Allows users to submit a code to authenticate to a profile.
+/// Returns the user JWT for future requests.
+///
+/// The passed phone and code are validated.
+///
+/// We validate rate constraints with the persistent auth attempt records.
 #[post("/signin")]
 pub async fn sign_in(
     config: Data<Config>,

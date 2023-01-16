@@ -373,30 +373,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bout-backend"
-version = "0.2.22-alpha"
-dependencies = [
- "actix-rt",
- "actix-web",
- "chrono",
- "futures-util",
- "images",
- "jwt",
- "openssl",
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry_api",
- "rand",
- "reqwest",
- "serde",
- "serde_json",
- "sqlx",
- "tokio",
- "uuid",
- "validation",
-]
-
-[[package]]
 name = "brotli"
 version = "3.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2402,6 +2378,30 @@ checksum = "44d01ac02a6ccf3e07db148d2be087da624fea0221a16152ed01f0496a6b0a27"
 dependencies = [
  "base64ct",
  "der",
+]
+
+[[package]]
+name = "spotster-backend"
+version = "0.2.23-alpha"
+dependencies = [
+ "actix-rt",
+ "actix-web",
+ "chrono",
+ "futures-util",
+ "images",
+ "jwt",
+ "openssl",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "opentelemetry_api",
+ "rand",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "tokio",
+ "uuid",
+ "validation",
 ]
 
 [[package]]

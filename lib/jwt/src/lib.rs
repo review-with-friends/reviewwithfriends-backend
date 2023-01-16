@@ -2,6 +2,7 @@ use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
+/// Wrapper to ensure EncodingKey and DecodingKeys are persisted for the duration of the service.
 #[derive(Clone)]
 pub struct SigningKeys(pub EncodingKey, pub DecodingKey);
 
@@ -12,6 +13,7 @@ struct Claims {
     sub: String, // Optional. Subject (whom token refers to)
 }
 
+/// Create a JWT with the given signing keys
 pub fn mint_jwt(keys: &SigningKeys, id: &str) -> String {
     let claims = Claims {
         aud: "mob".to_string(),
@@ -22,6 +24,7 @@ pub fn mint_jwt(keys: &SigningKeys, id: &str) -> String {
     encode(&Header::default(), &claims, &keys.0).unwrap()
 }
 
+/// Initialize the shared SigningKeys reference for token minting and validation.
 pub fn encode_jwt_secret(jwt_secret: &str) -> SigningKeys {
     SigningKeys(
         EncodingKey::from_secret(jwt_secret.as_ref()),

@@ -11,12 +11,14 @@ use futures_util::future::LocalBoxFuture;
 
 use crate::Config;
 
+/// A user who has passed authentication checks.
+/// The derived String type is the user_id for the user.
 #[derive(Debug, Clone, PartialEq)]
 pub struct AuthenticatedUser(pub String);
 
-pub struct Authorization;
+pub struct Authentication;
 
-impl<S, B> Transform<S, ServiceRequest> for Authorization
+impl<S, B> Transform<S, ServiceRequest> for Authentication
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
@@ -25,18 +27,21 @@ where
     type Response = ServiceResponse<EitherBody<B>>;
     type Error = Error;
     type InitError = ();
-    type Transform = AuthorizationMiddleware<S>;
+    type Transform = AuthenticationMiddleware<S>;
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AuthorizationMiddleware { service }))
+        ready(Ok(AuthenticationMiddleware { service }))
     }
 }
-pub struct AuthorizationMiddleware<S> {
+
+/// Authentication middleware used to validate the incoming request.
+/// Auth and ping routes are allowed to bypass this validation.
+pub struct AuthenticationMiddleware<S> {
     service: S,
 }
 
-impl<S, B> Service<ServiceRequest> for AuthorizationMiddleware<S>
+impl<S, B> Service<ServiceRequest> for AuthenticationMiddleware<S>
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,

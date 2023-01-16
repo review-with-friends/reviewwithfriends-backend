@@ -407,7 +407,7 @@ pub async fn create_reply(
     return Ok(());
 }
 
-/// Deletes a given reply.
+/// Deletes a given reply by id.
 pub async fn delete_reply(
     client: &MySqlPool,
     reply_id: &str,

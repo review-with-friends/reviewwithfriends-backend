@@ -6,6 +6,7 @@ use rusoto_signature::Region;
 
 pub const DEFAULT_PIC_ID: &str = "default";
 
+/// Build S3 Client for managing Spaces resources
 pub fn create_s3_client(key: &str, secret: &str) -> S3Client {
     S3Client::new_with(
         HttpClient::new().unwrap(),
@@ -17,6 +18,7 @@ pub fn create_s3_client(key: &str, secret: &str) -> S3Client {
     )
 }
 
+/// Digital Ocean Credentials for Spaces
 pub struct DOCredentials {
     key: String,
     secret: String,

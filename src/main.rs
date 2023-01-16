@@ -4,7 +4,7 @@ use actix_web::{
     App, HttpServer,
 };
 use auth::*;
-use authorization::Authorization;
+use authorization::Authentication;
 use friend_v1::{
     accept_friend, add_friend, cancel_friend, decline_friend, full_friends, get_friends,
     get_ignored_friends, get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
@@ -81,8 +81,9 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(client.clone()))
             .app_data(Data::new(http_client.clone()))
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
-            .wrap(Authorization)
+            .wrap(Authentication)
             .wrap_fn(|req, srv| {
+                // Exception logging middleware
                 let uri = req.uri().clone();
                 srv.call(req).map(move |res| {
                     if let Ok(result) = res {
@@ -178,6 +179,7 @@ async fn main() -> std::io::Result<()> {
     .await
 }
 
+/// Fetch build configs from environment variable
 fn build_config() -> Config {
     let is_dev = env::var("MOB_DEV");
 
@@ -201,6 +203,7 @@ fn build_config() -> Config {
     }
 }
 
+/// Set port bindings
 fn build_binding() -> (&'static str, u16) {
     let is_dev = env::var("MOB_DEV");
 
@@ -210,6 +213,7 @@ fn build_binding() -> (&'static str, u16) {
     }
 }
 
+/// Initialize tracing - New Relic for Prod, stdout for dev
 fn setup_tracing(config: &Config) {
     if config.newrelic_key != String::from("Default") {
         let mut nr_otlp_metadata: HashMap<String, String> = HashMap::new();

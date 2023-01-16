@@ -27,8 +27,13 @@ pub struct RequestCodeRequest {
     phone: String,
 }
 
-/// Allows users to request an auth code for a given phone number.
-/// This will also create an initial profile.
+/// Endpoint for requesting an auth code.
+/// The auth code is sent to the request phone number.
+/// We track when we send a code, and try to prevent abuse
+/// limiting the frequency on a phone by phone basis
+///
+/// We may want to add IP limits here as well. SMS is expensive
+/// when abused, and can be annoying for targets of said abuse.
 #[post("/requestcode")]
 pub async fn request_code(
     pool: Data<MySqlPool>,
@@ -172,6 +177,9 @@ fn get_new_user_name() -> String {
 }
 
 /// Generates a new 9 digit auth code authenticated via phone.
+/// I believe this generation is OK. The endpoint for validating
+/// the code restricts the code to a limited lifetime and we limit
+/// the amount of code attempts.
 fn get_new_auth_code() -> String {
     let mut rng = rand::thread_rng();
     let mut code = String::from("");
