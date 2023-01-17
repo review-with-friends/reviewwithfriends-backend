@@ -7,7 +7,7 @@ ARG SPACES_KEY
 ARG SPACES_SECRET
 ARG NR_KEY
 
-WORKDIR /bout
+WORKDIR /spotster
 
 ENV JWT_KEY=$JWT_KEY
 ENV TWILIO=$TWILIO
@@ -21,8 +21,8 @@ RUN apt-get install ca-certificates -y
 RUN update-ca-certificates
 
 # Copy our build
-COPY ./target/release/bout-backend ./
+COPY ./target/release/spotster-backend ./
 
-CMD ["/bout/bout-backend"]
+CMD ["/spotster/spotster-backend"]
 
 EXPOSE 80
