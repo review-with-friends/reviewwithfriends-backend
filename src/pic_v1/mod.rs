@@ -13,4 +13,7 @@ pub use get_review_pic::*;
 pub mod remove_review_pic;
 pub use remove_review_pic::*;
 
+pub use pic_types::*;
+pub mod pic_types;
+
 pub mod shared_utils;

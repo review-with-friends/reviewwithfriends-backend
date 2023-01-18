@@ -155,20 +155,32 @@ pub struct Pic {
     /// Guid unique identifier.
     pub id: String,
 
+    /// To support multiple reviews pics, pics can relate to multiple images.
+    pub review_id: Option<String>,
+
     /// Datetime the request was made.
     pub created: NaiveDateTime,
 
     /// The handler used to fetch/create the image.
     /// The handler must use the id to find the image.
     pub pic_handler: u8,
+
+    /// Width of pic in pixels
+    pub width: u16,
+
+    /// Height of pic in pixels
+    pub height: u16,
 }
 
 impl From<&MySqlRow> for Pic {
     fn from(row: &MySqlRow) -> Pic {
         Pic {
             id: row.get("id"),
+            review_id: row.get("review_id"),
             created: row.get("created"),
             pic_handler: row.get("pic_handler"),
+            width: row.get("width"),
+            height: row.get("height"),
         }
     }
 }

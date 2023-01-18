@@ -1,8 +1,9 @@
 use crate::{
     authorization::AuthenticatedUser,
     compound_types::CompoundReviewPub,
-    db::{get_all_likes, get_all_replies, get_review},
+    db::{get_all_likes, get_all_pics, get_all_replies, get_review},
     likes_v1::LikePub,
+    pic_v1::PicPub,
     reply_v1::ReplyPub,
 };
 use actix_web::{
@@ -72,9 +73,27 @@ pub async fn get_review_by_id(
         Err(_) => return Err(ErrorInternalServerError("unable to get replies")),
     }
 
+    let pics: Vec<PicPub>;
+
+    let pics_res = get_all_pics(&pool, &review_request.review_id).await;
+
+    match pics_res {
+        Ok(pics_tmp) => {
+            pics = pics_tmp
+                .into_iter()
+                .map(|f| -> PicPub { f.into() })
+                .collect();
+        }
+        Err(err) => {
+            println!("{}", err);
+            return Err(ErrorInternalServerError("unable to get pics"));
+        }
+    }
+
     return Ok(Json(CompoundReviewPub {
         review,
         likes,
         replies,
+        pics,
     }));
 }

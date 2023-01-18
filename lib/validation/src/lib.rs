@@ -54,7 +54,10 @@ pub fn validate_phone(phone: &str) -> Result<(), String> {
     Ok(())
 }
 
-pub fn validate_profile_pic(bytes: &[u8]) -> Result<(), String> {
+/// Validates the profile pic and returns the size.
+///
+/// Tuple return is (metadata.width, metadata.height)
+pub fn validate_profile_pic(bytes: &[u8]) -> Result<(u16, u16), String> {
     if bytes.len() > 250_000 {
         return Err("pic too large".to_string());
     }
@@ -73,7 +76,7 @@ pub fn validate_profile_pic(bytes: &[u8]) -> Result<(), String> {
                     return Err("image too wide".to_string());
                 }
 
-                return Ok(());
+                return Ok((metadata.width, metadata.height));
             } else {
                 return Err("metadata unreadable".to_string());
             }
@@ -82,7 +85,10 @@ pub fn validate_profile_pic(bytes: &[u8]) -> Result<(), String> {
     }
 }
 
-pub fn validate_review_pic(bytes: &[u8]) -> Result<(), String> {
+/// Validates the review pic and returns the size.
+///
+/// Tuple return is (metadata.width, metadata.height)
+pub fn validate_review_pic(bytes: &[u8]) -> Result<(u16, u16), String> {
     if bytes.len() > 3_250_000 {
         return Err("pic too large".to_string());
     }
@@ -101,7 +107,7 @@ pub fn validate_review_pic(bytes: &[u8]) -> Result<(), String> {
                     return Err("image too wide".to_string());
                 }
 
-                return Ok(());
+                return Ok((metadata.width, metadata.height));
             } else {
                 return Err("metadata unreadable".to_string());
             }

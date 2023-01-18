@@ -1,4 +1,5 @@
 use crate::likes_v1::LikePub;
+use crate::pic_v1::PicPub;
 use crate::reply_v1::ReplyPub;
 use crate::review_v1::ReviewPub;
 use serde::Serialize;
@@ -13,4 +14,5 @@ pub struct CompoundReviewPub {
     pub review: ReviewPub,
     pub likes: Vec<LikePub>,
     pub replies: Vec<ReplyPub>,
+    pub pics: Vec<PicPub>,
 }

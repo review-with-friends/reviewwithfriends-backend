@@ -230,19 +230,32 @@ pub async fn remove_current_friend(
 /// ## Sets the `pic.created` to `Utc::now().naive_utc()`
 /// ## Sets the `pic.id` to `Uuid::new_v4().to_string()`
 /// ## Sets the `pic.pic_handler` to `1` for now.
-pub async fn create_pic(client: &MySqlPool) -> Result<Pic, Error> {
+pub async fn create_pic(
+    client: &MySqlPool,
+    review_id: Option<String>,
+    width: u16,
+    height: u16,
+) -> Result<Pic, Error> {
     let pic = Pic {
         id: Uuid::new_v4().to_string(),
+        review_id: review_id,
         created: Utc::now().naive_utc(),
         pic_handler: 1,
+        width: width,
+        height: height,
     };
 
-    sqlx::query("INSERT INTO pic (id, created, pic_handler) VALUES (?,?,?)")
-        .bind(&pic.id)
-        .bind(&pic.created)
-        .bind(&pic.pic_handler)
-        .execute(client)
-        .await?;
+    sqlx::query(
+        "INSERT INTO pic (id, created, pic_handler, review_id, width, height) VALUES (?,?,?,?,?,?)",
+    )
+    .bind(&pic.id)
+    .bind(&pic.created)
+    .bind(&pic.pic_handler)
+    .bind(&pic.review_id)
+    .bind(&pic.width)
+    .bind(&pic.height)
+    .execute(client)
+    .await?;
 
     return Ok(pic);
 }
@@ -316,10 +329,13 @@ pub async fn update_review_pic_id(
 }
 
 /// Sets a `review.pic_id` to NULL.
-pub async fn remove_review_pic_id(client: &MySqlPool, review_id: &str) -> Result<(), Error> {
-    const NULL: Option<String> = None;
-    sqlx::query("UPDATE review SET pic_id = ? WHERE id = ?")
-        .bind(NULL)
+pub async fn remove_review_pic_id(
+    client: &MySqlPool,
+    pic_id: &str,
+    review_id: &str,
+) -> Result<(), Error> {
+    sqlx::query("DELETE FROM pic where id = ? and review_id = ?")
+        .bind(pic_id)
         .bind(review_id)
         .execute(client)
         .await?;

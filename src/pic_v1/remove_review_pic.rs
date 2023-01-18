@@ -1,7 +1,7 @@
 use super::shared_utils::best_effort_delete_pic;
 use crate::{
     authorization::AuthenticatedUser,
-    db::{get_review, remove_review_pic_id, Review},
+    db::{get_all_pics, get_review, remove_review_pic_id, Pic, Review},
 };
 use actix_web::{
     post,
@@ -15,6 +15,7 @@ use sqlx::MySqlPool;
 #[derive(Deserialize)]
 pub struct RemoveReviewPicRequest {
     review_id: String,
+    pic_id: String,
 }
 
 #[post("/remove_review_pic")]
@@ -49,11 +50,23 @@ pub async fn remove_review_pic(
         return Ok(HttpResponse::BadRequest().body("unable to edit this review"));
     }
 
-    if let None = review.pic_id {
-        return Ok(HttpResponse::Ok().finish());
+    let pics_res = get_all_pics(&pool, &review.id).await;
+
+    let pics: Vec<Pic>;
+    match pics_res {
+        Ok(pics_tmp) => pics = pics_tmp,
+        Err(_) => return Ok(HttpResponse::BadRequest().body("unable to get pics")),
     }
 
-    if let Err(_) = remove_review_pic_id(&pool, &review.id).await {
+    if !pics
+        .iter()
+        .any(|x| x.id == remove_review_pic_request.pic_id)
+    {
+        return Ok(HttpResponse::InternalServerError().body("pic doesnt exist"));
+    }
+
+    if let Err(_) = remove_review_pic_id(&pool, &remove_review_pic_request.pic_id, &review.id).await
+    {
         return Ok(HttpResponse::InternalServerError().body("unable to remove pic"));
     }
 

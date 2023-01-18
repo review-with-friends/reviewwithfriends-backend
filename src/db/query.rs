@@ -437,3 +437,16 @@ pub async fn get_all_replies(client: &MySqlPool, review_id: &str) -> Result<Vec<
 
     return Ok(out);
 }
+
+/// Gets all the pics for a given review.
+/// ## Does not validate the review is able to be viewed by calling user.
+pub async fn get_all_pics(client: &MySqlPool, review_id: &str) -> Result<Vec<Pic>, Error> {
+    let rows = sqlx::query("SELECT * FROM pic WHERE review_id = ?")
+        .bind(review_id)
+        .fetch_all(client)
+        .await?;
+
+    let out: Vec<Pic> = rows.iter().map(|row| row.into()).collect();
+
+    return Ok(out);
+}

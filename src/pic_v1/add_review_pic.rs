@@ -1,6 +1,6 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{create_pic, get_review, update_review_pic_id, Review},
+    db::{create_pic, get_all_pics, get_review, remove_review_pic_id, Review},
 };
 use actix_web::{
     post,
@@ -11,8 +11,6 @@ use images::{ByteStream, PutObjectRequest, S3Client, S3};
 use serde::Deserialize;
 use sqlx::MySqlPool;
 use validation::validate_review_pic;
-
-use super::shared_utils::best_effort_delete_pic;
 
 #[derive(Deserialize)]
 pub struct AddReviewPicRequest {
@@ -28,11 +26,21 @@ pub async fn add_review_pic(
     add_review_pic_request: Query<AddReviewPicRequest>,
     pic_bytes: Bytes,
 ) -> Result<HttpResponse> {
-    if let Err(err) = validate_review_pic(&pic_bytes) {
-        return Ok(HttpResponse::BadRequest().body(err));
+    let validation_result = validate_review_pic(&pic_bytes);
+
+    let width: u16;
+    let height: u16;
+
+    match validation_result {
+        Ok(size) => {
+            width = size.0;
+            height = size.1;
+        }
+        Err(err) => {
+            return Ok(HttpResponse::BadRequest().body(err));
+        }
     }
 
-    let previous_pic_id: Option<String>;
     let review_res = get_review(
         &pool,
         &authenticated_user.0,
@@ -44,7 +52,6 @@ pub async fn add_review_pic(
     match review_res {
         Ok(review_opt) => {
             if let Some(review_tmp) = review_opt {
-                previous_pic_id = review_tmp.pic_id.clone();
                 review = review_tmp;
             } else {
                 return Ok(HttpResponse::NotFound().body("could not find review"));
@@ -59,7 +66,24 @@ pub async fn add_review_pic(
         return Ok(HttpResponse::InternalServerError().body("unable to edit this review"));
     }
 
-    let pic_res = create_pic(&pool).await;
+    let pics_res = get_all_pics(&pool, &review.id).await;
+
+    match pics_res {
+        Ok(pics) => {
+            if pics.len() >= 4 {
+                return Ok(HttpResponse::BadRequest().body("too many pics already"));
+            }
+        }
+        Err(_) => return Ok(HttpResponse::BadRequest().body("unable to get pics")),
+    }
+
+    let pic_res = create_pic(
+        &pool,
+        Some(add_review_pic_request.review_id.clone()),
+        width,
+        height,
+    )
+    .await;
 
     match pic_res {
         Ok(pic) => {
@@ -73,16 +97,9 @@ pub async fn add_review_pic(
                 })
                 .await
             {
+                let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
+
                 return Ok(HttpResponse::InternalServerError().body("unable to store review pic"));
-            }
-
-            if let Err(_) = update_review_pic_id(&pool, &pic.id, &review.id).await {
-                return Ok(HttpResponse::InternalServerError().body("unable to save review pic"));
-            }
-
-            if let Some(pic_id) = previous_pic_id {
-                best_effort_delete_pic(&s3_client, &pool, &pic_id).await;
-                // best effort - we can clean up stored images later
             }
 
             return Ok(HttpResponse::Ok().finish());

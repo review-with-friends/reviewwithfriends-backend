@@ -21,8 +21,19 @@ pub async fn add_profile_pic(
     s3_client: Data<S3Client>,
     pic_bytes: Bytes,
 ) -> Result<HttpResponse> {
-    if let Err(err) = validate_profile_pic(&pic_bytes) {
-        return Ok(HttpResponse::BadRequest().body(err));
+    let validation_result = validate_profile_pic(&pic_bytes);
+
+    let width: u16;
+    let height: u16;
+
+    match validation_result {
+        Ok(size) => {
+            width = size.0;
+            height = size.1;
+        }
+        Err(err) => {
+            return Ok(HttpResponse::BadRequest().body(err));
+        }
     }
 
     let previous_pic_id: String;
@@ -41,7 +52,7 @@ pub async fn add_profile_pic(
         }
     }
 
-    let pic_res = create_pic(&pool).await;
+    let pic_res = create_pic(&pool, None, width, height).await;
 
     match pic_res {
         Ok(pic) => {
