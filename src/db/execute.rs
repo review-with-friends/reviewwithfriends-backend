@@ -312,22 +312,6 @@ pub async fn create_review(client: &MySqlPool, review: &Review) -> Result<(), Er
     return Ok(());
 }
 
-/// Updates a `review.pic_id`.
-/// Does no validationg the pic exists.
-pub async fn update_review_pic_id(
-    client: &MySqlPool,
-    pic_id: &str,
-    review_id: &str,
-) -> Result<(), Error> {
-    sqlx::query("UPDATE review SET pic_id = ? WHERE id = ?")
-        .bind(pic_id)
-        .bind(review_id)
-        .execute(client)
-        .await?;
-
-    return Ok(());
-}
-
 /// Sets a `review.pic_id` to NULL.
 pub async fn remove_review_pic_id(
     client: &MySqlPool,
