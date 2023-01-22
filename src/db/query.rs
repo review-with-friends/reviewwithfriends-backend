@@ -25,7 +25,7 @@ pub async fn get_user(client: &MySqlPool, id: &str) -> Result<Option<User>, Erro
     let row_opt = sqlx::query(
         "SELECT *
         FROM   user
-        WHERE  name = ? ",
+        WHERE  id = ? ",
     )
     .bind(id)
     .fetch_optional(client)
