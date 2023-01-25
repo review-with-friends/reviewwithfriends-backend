@@ -267,14 +267,34 @@ pub async fn get_review(
     review_id: &str,
 ) -> Result<Option<Review>, Error> {
     let row_opt = sqlx::query(
-        "SELECT r1.*
+        "SELECT r1.id,
+        r1.user_id,
+        r1.created,
+        r1.pic_id,
+        r1.category,
+        r1.text,
+        r1.stars,
+        r1.location_name,
+        ST_X(r1.location) as longitude,
+        ST_Y(r1.location) as latitude,
+        r1.is_custom
         FROM   review AS r1
                INNER JOIN friend AS f1
                        ON f1.friend_id = r1.user_id
         WHERE  f1.user_id = ?
                AND r1.id = ?
         UNION
-        SELECT r2.*
+        SELECT r2.id,
+        r2.user_id,
+        r2.created,
+        r2.pic_id,
+        r2.category,
+        r2.text,
+        r2.stars,
+        r2.location_name,
+        ST_X(r2.location) as longitude,
+        ST_Y(r2.location) as latitude,
+        r2.is_custom
         FROM   review AS r2
         WHERE  r2.user_id = ?
                AND r2.id = ? ",
@@ -300,40 +320,55 @@ pub async fn get_reviews_from_location(
     client: &MySqlPool,
     user_id: &str,
     name: &str,
-    latitude_low: f64,
-    latitude_high: f64,
-    longitude_low: f64,
-    longitude_high: f64,
+    latitude: f64,
+    longitude: f64,
 ) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+    const ACCURACY_SIZE: f64 = 0.001;
     let rows = sqlx::query(
-        "SELECT r1.*
+        "SELECT r1.id,
+        r1.user_id,
+        r1.created,
+        r1.pic_id,
+        r1.category,
+        r1.text,
+        r1.stars,
+        r1.location_name,
+        ST_X(r1.location) as longitude,
+        ST_Y(r1.location) as latitude,
+        r1.is_custom
         FROM   review AS r1
                INNER JOIN friend AS f1
                        ON f1.friend_id = r1.user_id
         WHERE  f1.user_id = ?
                AND r1.location_name = ?
-               AND r1.latitude BETWEEN ? AND ?
-               AND r1.longitude BETWEEN ? AND ?
+               AND ST_Contains(ST_Buffer(POINT(?, ?), ?), r1.location) = 1
         UNION
-        SELECT r2.*
+        SELECT r2.id,
+        r2.user_id,
+        r2.created,
+        r2.pic_id,
+        r2.category,
+        r2.text,
+        r2.stars,
+        r2.location_name,
+        ST_X(r2.location) as longitude,
+        ST_Y(r2.location) as latitude,
+        r2.is_custom
         FROM   review AS r2
         WHERE  r2.user_id = ?
                AND r2.location_name = ?
-               AND r2.latitude BETWEEN ? AND ?
-               AND r2.longitude BETWEEN ? AND ? ",
+               AND ST_Contains(ST_Buffer(POINT(?, ?), ?), r2.location) = 1",
     )
     .bind(user_id)
     .bind(name)
-    .bind(latitude_low)
-    .bind(latitude_high)
-    .bind(longitude_low)
-    .bind(longitude_high)
+    .bind(longitude)
+    .bind(latitude)
+    .bind(ACCURACY_SIZE)
     .bind(user_id)
     .bind(name)
-    .bind(latitude_low)
-    .bind(latitude_high)
-    .bind(longitude_low)
-    .bind(longitude_high)
+    .bind(longitude)
+    .bind(latitude)
+    .bind(ACCURACY_SIZE)
     .fetch_all(client)
     .await?;
 
@@ -366,26 +401,20 @@ pub async fn get_reviews_from_bounds(
         res.text,
         res.stars,
         res.location_name,
-        res.latitude,
-        res.longitude,
+        ST_X(res.location) as longitude,
+        ST_Y(res.location) as latitude,
         res.is_custom
         FROM   (SELECT r1.*
                 FROM   review AS r1
                         INNER JOIN friend AS f1
                                 ON f1.friend_id = r1.user_id
                 WHERE  f1.user_id = ?
-                        AND r1.latitude <= ?
-                        AND r1.latitude >= ?
-                        AND r1.longitude >= ?
-                        AND r1.longitude <= ?
+                        AND ST_Contains(ST_MakeEnvelope(POINT(?, ?), POINT(?, ?)), r1.location)
                 UNION ALL
                 SELECT r2.*
                 FROM   review AS r2
                 WHERE  r2.user_id = ?
-                        AND r2.latitude <= ?
-                        AND r2.latitude >= ?
-                        AND r2.longitude >= ?
-                        AND r2.longitude <= ?) AS res
+                        AND ST_Contains(ST_MakeEnvelope(POINT(?, ?), POINT(?, ?)), r2.location)) AS res
                 LEFT JOIN pic AS p
                     ON p.id = (SELECT id
                                 FROM   pic pp
@@ -394,15 +423,15 @@ pub async fn get_reviews_from_bounds(
         LIMIT  ? offset ? ",
     )
     .bind(user_id)
-    .bind(latitude_north)
-    .bind(latitude_south)
     .bind(longitude_west)
+    .bind(latitude_north)
     .bind(longitude_east)
+    .bind(latitude_south)
     .bind(user_id)
-    .bind(latitude_north)
-    .bind(latitude_south)
     .bind(longitude_west)
+    .bind(latitude_north)
     .bind(longitude_east)
+    .bind(latitude_south)
     .bind(PAGE_SIZE)
     .bind(lower_count)
     .fetch_all(client)
@@ -441,51 +470,43 @@ pub async fn get_reviews_from_bounds_with_exclusions(
         res.text,
         res.stars,
         res.location_name,
-        res.latitude,
-        res.longitude,
+        ST_X(res.location) as longitude,
+        ST_Y(res.location) as latitude,
         res.is_custom
         FROM   (SELECT r1.*
                 FROM   review AS r1
                         INNER JOIN friend AS f1
                                 ON f1.friend_id = r1.user_id
                 WHERE  f1.user_id = ?
-                        AND r1.latitude <= ?
-                        AND r1.latitude >= ?
-                        AND r1.longitude >= ?
-                        AND r1.longitude <= ?
+                    AND ST_Contains(ST_MakeEnvelope(POINT(?, ?), POINT(?, ?)), r1.location)
                 UNION ALL
                 SELECT r2.*
                 FROM   review AS r2
                 WHERE  r2.user_id = ?
-                        AND r2.latitude <= ?
-                        AND r2.latitude >= ?
-                        AND r2.longitude >= ?
-                        AND r2.longitude <= ?) AS res
+                    AND ST_Contains(ST_MakeEnvelope(POINT(?, ?), POINT(?, ?)), r2.location)) AS res
                 LEFT JOIN pic AS p
                     ON p.id = (SELECT id
                                 FROM   pic pp
                                 WHERE  pp.review_id = res.id
                                 LIMIT  1)
-        WHERE  NOT ( res.latitude <= ?
-                    AND res.latitude >= ?
-                    AND res.longitude >= ?
-                    AND res.longitude <= ? )
+        WHERE  NOT  
+            ST_Contains(ST_MakeEnvelope(POINT(?, ?), POINT(?, ?)), res.location)
         LIMIT  ? offset ? ",
     )
     .bind(user_id)
-    .bind(latitude_north)
-    .bind(latitude_south)
     .bind(longitude_west)
+    .bind(latitude_north)
     .bind(longitude_east)
+    .bind(latitude_south)
     .bind(user_id)
-    .bind(latitude_north)
-    .bind(latitude_south)
     .bind(longitude_west)
+    .bind(latitude_north)
     .bind(longitude_east)
-    .bind(latitude_north_e)
-    .bind(latitude_south_e)
+    .bind(latitude_south)
     .bind(longitude_west_e)
+    .bind(latitude_north_e)
     .bind(longitude_east_e)
+    .bind(latitude_south_e)
     .bind(PAGE_SIZE)
     .bind(lower_count)
     .fetch_all(client)
@@ -509,7 +530,17 @@ pub async fn get_latest_reviews(
     let lower_count = page * PAGE_SIZE;
 
     let rows = sqlx::query(
-        "SELECT *
+        "SELECT res.id,
+            res.user_id,
+            res.created,
+            res.pic_id,
+            res.category,
+            res.text,
+            res.stars,
+            res.location_name,
+            ST_X(res.location) as longitude,
+            ST_Y(res.location) as latitude,
+            res.is_custom
         FROM   (SELECT r1.*
                 FROM   review AS r1
                        INNER JOIN friend AS f1

@@ -8,7 +8,7 @@ use actix_web::{
 use serde::Deserialize;
 use sqlx::MySqlPool;
 
-use super::review_types::{ReviewPub, ACCURACY_SIZE};
+use super::review_types::ReviewPub;
 
 #[derive(Deserialize)]
 pub struct ReviewLocationRequest {
@@ -30,10 +30,8 @@ pub async fn get_reviews_from_loc(
         &pool,
         &authenticated_user.0,
         &review_location_request.name,
-        review_location_request.latitude - ACCURACY_SIZE,
-        review_location_request.latitude + ACCURACY_SIZE,
-        review_location_request.longitude - ACCURACY_SIZE,
-        review_location_request.longitude + ACCURACY_SIZE,
+        review_location_request.latitude,
+        review_location_request.longitude,
     )
     .await;
 

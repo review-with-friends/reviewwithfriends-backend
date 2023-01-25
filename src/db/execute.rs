@@ -292,8 +292,8 @@ pub async fn delete_pic(client: &MySqlPool, pic_id: &str) -> Result<(), Error> {
 pub async fn create_review(client: &MySqlPool, review: &Review) -> Result<(), Error> {
     sqlx::query(
         "INSERT INTO review 
-        (id, user_id, created, pic_id, text, stars, location_name, latitude, longitude, is_custom, category) 
-        VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (id, user_id, created, pic_id, text, stars, location_name, is_custom, category, location) 
+        VALUES (?,?,?,?,?,?,?,?,?,Point(?,?))",
     )
     .bind(&review.id)
     .bind(&review.user_id)
@@ -302,10 +302,10 @@ pub async fn create_review(client: &MySqlPool, review: &Review) -> Result<(), Er
     .bind(&review.text)
     .bind(&review.stars)
     .bind(&review.location_name)
-    .bind(&review.latitude)
-    .bind(&review.longitude)
     .bind(&review.is_custom)
     .bind(&review.category)
+    .bind(&review.longitude)
+    .bind(&review.latitude)
     .execute(client)
     .await?;
 
