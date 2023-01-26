@@ -23,6 +23,13 @@ pub async fn remove_friend(
     pool: Data<MySqlPool>,
     remove_request: Query<RemoveRequest>,
 ) -> Result<impl Responder> {
+    if authenticated_user
+        .0
+        .eq_ignore_ascii_case(&remove_request.friend_id)
+    {
+        return Err(ErrorBadRequest("you cannot unfriend yourself"));
+    }
+
     let friends_res = get_current_friends(&pool, &authenticated_user.0.clone()).await;
 
     match friends_res {

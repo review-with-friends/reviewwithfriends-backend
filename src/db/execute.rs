@@ -9,6 +9,8 @@ use super::{Friend, Pic, Review, User};
 /// Does not generate a guid for `user.id`
 /// Does not set a date for `user.created`
 pub async fn create_user(client: &MySqlPool, user: &User) -> Result<(), Error> {
+    let mut trans = client.begin().await?;
+
     sqlx::query(
         "INSERT INTO user (id, name, display_name, phone, created, pic_id) VALUES (?,?,?,?,?,?)",
     )
@@ -18,8 +20,19 @@ pub async fn create_user(client: &MySqlPool, user: &User) -> Result<(), Error> {
     .bind(&user.phone)
     .bind(&user.created)
     .bind(DEFAULT_PIC_ID)
-    .execute(client)
+    .execute(&mut trans)
     .await?;
+
+    // This insert is important. We assume you are friends with yourself, otherwise you can't see your own posts.
+    sqlx::query("INSERT INTO friend (id, created, user_id, friend_id) VALUES (?,?,?,?)")
+        .bind(Uuid::new_v4().to_string())
+        .bind(Utc::now().naive_utc())
+        .bind(&user.id)
+        .bind(&user.id)
+        .execute(&mut trans)
+        .await?;
+
+    trans.commit().await?;
 
     return Ok(());
 }
