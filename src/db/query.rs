@@ -530,30 +530,24 @@ pub async fn get_latest_reviews(
     let lower_count = page * PAGE_SIZE;
 
     let rows = sqlx::query(
-        "SELECT res.id,
-            res.user_id,
-            res.created,
-            res.pic_id,
-            res.category,
-            res.text,
-            res.stars,
-            res.location_name,
-            ST_X(res.location) as longitude,
-            ST_Y(res.location) as latitude,
-            res.is_custom
-        FROM   (SELECT r1.*
-                FROM   review AS r1
-                       INNER JOIN friend AS f1
-                               ON f1.friend_id = r1.user_id
-                WHERE  f1.user_id = ?
-                UNION
-                SELECT r2.*
-                FROM   review AS r2
-                WHERE  r2.user_id = ?) AS res
-        ORDER  BY res.created DESC
-        LIMIT  ? offset ? ",
+        "SELECT r.id,
+        r.user_id,
+        r.created,
+        r.pic_id,
+        r.category,
+        r.text,
+        r.stars,
+        r.location_name,
+        St_x(r.location) AS longitude,
+        St_y(r.location) AS latitude,
+        r.is_custom
+ FROM   review AS r
+        INNER JOIN friend AS f
+                ON r.user_id = f.friend_id
+ WHERE  f.user_id = ?
+ ORDER  BY r.created DESC
+ LIMIT  ? offset ? ",
     )
-    .bind(user_id)
     .bind(user_id)
     .bind(PAGE_SIZE)
     .bind(lower_count)
