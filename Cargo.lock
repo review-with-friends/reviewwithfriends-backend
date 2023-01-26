@@ -2382,7 +2382,7 @@ dependencies = [
 
 [[package]]
 name = "spotster-backend"
-version = "0.2.27-alpha"
+version = "0.2.28-alpha"
 dependencies = [
  "actix-rt",
  "actix-web",
