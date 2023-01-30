@@ -13,6 +13,7 @@ use futures_util::FutureExt;
 use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
 use likes_v1::{get_likes, like_review, unlike_review};
+use notifications_v1::{confirm_notifications, get_notifications};
 use opentelemetry::sdk::{
     export::trace::stdout,
     trace::{self, Sampler},
@@ -40,6 +41,7 @@ mod compound_types;
 mod db;
 mod friend_v1;
 mod likes_v1;
+mod notifications_v1;
 mod pic_v1;
 mod ping_routes;
 mod reply_v1;
@@ -172,6 +174,11 @@ async fn main() -> std::io::Result<()> {
                                 .service(get_replies)
                                 .service(add_reply)
                                 .service(remove_reply),
+                        )
+                        .service(
+                            web::scope("/notification")
+                                .service(get_notifications)
+                                .service(confirm_notifications),
                         ),
                 ),
             )

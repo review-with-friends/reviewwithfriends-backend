@@ -294,3 +294,37 @@ impl From<&MySqlRow> for Reply {
         }
     }
 }
+
+/// Represents a notification to a post.
+pub struct Notification {
+    /// Guid unique identifier.
+    pub id: String,
+
+    /// Datetime the notification was made.
+    pub created: NaiveDateTime,
+
+    /// The user who is responsible for receiving the notification.
+    pub review_user_id: String,
+
+    // Id of the review the notification is for.
+    pub review_id: String,
+
+    /// The user who is responsible for the notification.
+    pub user_id: String,
+
+    /// The type of action which created the notification.
+    pub action_type: u8,
+}
+
+impl From<&MySqlRow> for Notification {
+    fn from(row: &MySqlRow) -> Notification {
+        Notification {
+            id: row.get("id"),
+            created: row.get("created"),
+            review_user_id: row.get("review_user_id"),
+            user_id: row.get("user_id"),
+            review_id: row.get("review_id"),
+            action_type: row.get("action_type"),
+        }
+    }
+}

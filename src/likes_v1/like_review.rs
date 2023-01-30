@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{create_like, get_review, is_already_liked},
+    db::{create_like, create_notification, get_review, is_already_liked, Review},
+    notifications_v1::ActionType,
 };
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
@@ -25,9 +26,12 @@ pub async fn like_review(
 ) -> Result<impl Responder> {
     let review_res = get_review(&pool, &authenticated_user.0, &like_review_request.review_id).await;
 
+    let review: Review;
     match review_res {
         Ok(review_opt) => {
-            if let None = review_opt {
+            if let Some(review_tmp) = review_opt {
+                review = review_tmp
+            } else {
                 return Err(ErrorNotFound("could not find review"));
             }
         }
@@ -53,6 +57,17 @@ pub async fn like_review(
 
     match create_res {
         Ok(_) => {
+            // Creating the notificaiton is best effort. We may look into not awaiting this;
+            // though unsure of how the tokio runtime closes out the webrequest.
+            let _ = create_notification(
+                &pool,
+                &authenticated_user.0,
+                &review.user_id,
+                &review.id,
+                ActionType::Like.into(),
+            )
+            .await;
+
             return Ok(HttpResponse::Ok().finish());
         }
         Err(_) => {

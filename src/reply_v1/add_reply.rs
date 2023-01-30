@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{create_reply, get_review},
+    db::{create_notification, create_reply, get_review, Review},
+    notifications_v1::ActionType,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -29,10 +30,17 @@ pub async fn add_reply(
         return Err(ErrorBadRequest(err));
     }
 
-    if let Err(_) = get_review(&pool, &authenticated_user.0, &add_reply_request.review_id).await {
-        return Err(ErrorInternalServerError(
-            "unable to find review".to_string(),
-        ));
+    let review_res = get_review(&pool, &authenticated_user.0, &add_reply_request.review_id).await;
+
+    let review: Review;
+    if let Ok(review_opt) = review_res {
+        if let Some(review_tmp) = review_opt {
+            review = review_tmp;
+        } else {
+            return Err(ErrorBadRequest("unable to find review".to_string()));
+        }
+    } else {
+        return Err(ErrorInternalServerError("unable to get review".to_string()));
     }
 
     let reply_res = create_reply(
@@ -45,6 +53,17 @@ pub async fn add_reply(
 
     match reply_res {
         Ok(_) => {
+            // Creating the notificaiton is best effort. We may look into not awaiting this;
+            // though unsure of how the tokio runtime closes out the webrequest.
+            let _ = create_notification(
+                &pool,
+                &authenticated_user.0,
+                &review.user_id,
+                &review.id,
+                ActionType::Reply.into(),
+            )
+            .await;
+
             return Ok(HttpResponse::Ok().finish());
         }
         Err(_) => return Err(ErrorInternalServerError("unable create reply".to_string())),

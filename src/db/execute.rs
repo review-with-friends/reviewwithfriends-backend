@@ -472,3 +472,56 @@ pub async fn update_usernames(
 
     return Ok(());
 }
+
+/// Deletes all notifications, which is essentially confirming them.
+pub async fn confirm_notifications(client: &MySqlPool, user_id: &str) -> Result<(), Error> {
+    sqlx::query("DELETE FROM notification WHERE user_id = ?")
+        .bind(user_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+/// Creates a notification for a user as a response for the given action.
+pub async fn create_notification(
+    client: &MySqlPool,
+    user_id: &str,
+    review_user_id: &str,
+    review_id: &str,
+    action_type: u8,
+) -> Result<(), Error> {
+    let row = sqlx::query(
+        "SELECT *
+            FROM  notification AS n 
+        WHERE n.review_id = ? 
+            AND n.user_id = ? 
+            AND n.action_type = ?",
+    )
+    .bind(review_id)
+    .bind(user_id)
+    .bind(action_type)
+    .fetch_all(client)
+    .await?;
+
+    // If this type from this user on this review already exists, we can just early return.
+    if row.len() == 1 {
+        return Ok(());
+    }
+
+    sqlx::query(
+        "INSERT INTO notification 
+        (id, created, review_user_id, user_id, review_id, action_type)
+        VALUES (?,?,?,?,?,?)",
+    )
+    .bind(Uuid::new_v4().to_string())
+    .bind(Utc::now().naive_utc())
+    .bind(review_user_id)
+    .bind(user_id)
+    .bind(review_id)
+    .bind(action_type)
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
