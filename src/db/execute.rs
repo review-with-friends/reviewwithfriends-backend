@@ -491,6 +491,11 @@ pub async fn create_notification(
     review_id: &str,
     action_type: u8,
 ) -> Result<(), Error> {
+    // No need to notify yourself of your own action.
+    if review_user_id.eq_ignore_ascii_case(user_id) {
+        return Ok(());
+    }
+
     let row = sqlx::query(
         "SELECT *
             FROM  notification AS n 
