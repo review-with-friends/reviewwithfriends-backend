@@ -360,12 +360,16 @@ pub async fn get_reviews_from_location(
 
 /// Gets all reviews from a user.
 /// Accounts for the passed user_id's fiends and own reviews.
-/// ## Results are NOT paged.
 pub async fn get_reviews_from_user(
     client: &MySqlPool,
     user_id: &str,
     target_user_id: &str,
+    page: u32,
 ) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+    const PAGE_SIZE: u32 = 5;
+
+    let lower_count = page * PAGE_SIZE;
+
     let rows = sqlx::query(
         "SELECT r.id,
         r.user_id,
@@ -383,10 +387,13 @@ pub async fn get_reviews_from_user(
                        ON r.user_id = f.friend_id
         WHERE  f.user_id = ?
             AND r.user_id = ?
-        ORDER BY r.created DESC",
+        ORDER BY r.created DESC
+        LIMIT  ? offset ? ",
     )
     .bind(user_id)
     .bind(target_user_id)
+    .bind(PAGE_SIZE)
+    .bind(lower_count)
     .fetch_all(client)
     .await?;
 

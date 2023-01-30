@@ -13,6 +13,7 @@ use super::review_types::ReviewPub;
 #[derive(Deserialize)]
 pub struct UserReviewRequest {
     user_id: String,
+    page: u32,
 }
 
 /// Gets reviews you are able to see that qualify via close location.
@@ -24,8 +25,13 @@ pub async fn get_reviews_from_user(
     pool: Data<MySqlPool>,
     user_review_request: Query<UserReviewRequest>,
 ) -> Result<impl Responder> {
-    let review_res =
-        db::get_reviews_from_user(&pool, &authenticated_user.0, &user_review_request.user_id).await;
+    let review_res = db::get_reviews_from_user(
+        &pool,
+        &authenticated_user.0,
+        &user_review_request.user_id,
+        user_review_request.page,
+    )
+    .await;
 
     match review_res {
         Ok(reviews) => {
