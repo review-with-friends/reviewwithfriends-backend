@@ -10,6 +10,9 @@ pub mod add_review;
 pub mod get_reviews_from_bounds;
 pub use get_reviews_from_bounds::*;
 
+pub mod get_reviews_from_user;
+pub use get_reviews_from_user::*;
+
 pub mod get_reviews_from_bounds_exclusions;
 pub use get_reviews_from_bounds_exclusions::*;
 

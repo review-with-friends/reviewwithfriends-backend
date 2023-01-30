@@ -356,6 +356,43 @@ pub async fn get_reviews_from_location(
     return Ok(out);
 }
 
+/// Gets all reviews from a user.
+/// Accounts for the passed user_id's fiends and own reviews.
+/// ## Results are NOT paged.
+pub async fn get_reviews_from_user(
+    client: &MySqlPool,
+    user_id: &str,
+    target_user_id: &str,
+) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+    let rows = sqlx::query(
+        "SELECT r.id,
+        r.user_id,
+        r.created,
+        r.pic_id,
+        r.category,
+        r.text,
+        r.stars,
+        r.location_name,
+        ST_X(r.location) as longitude,
+        ST_Y(r.location) as latitude,
+        r.is_custom
+        FROM   review AS r
+               INNER JOIN friend AS f
+                       ON r.user_id = f.friend_id
+        WHERE  f.user_id = ?
+            AND r.user_id = ?
+        ORDER BY r.created DESC",
+    )
+    .bind(user_id)
+    .bind(target_user_id)
+    .fetch_all(client)
+    .await?;
+
+    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
+
+    return Ok(out);
+}
+
 /// Gets reviews from a given bounding box.
 /// Accounts for the passed user_id's friends and own reviews.
 /// ## Results are paged.
