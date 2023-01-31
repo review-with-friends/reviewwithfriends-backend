@@ -1,4 +1,4 @@
-use crate::db::Notification;
+use crate::db::ExpandedNotification;
 use serde::Serialize;
 
 /// DB Types are purposefuly not serialized.
@@ -12,10 +12,11 @@ pub struct NotificationPub {
     pub user_id: String,
     pub review_id: String,
     pub action_type: u8,
+    pub review_location: String,
 }
 
-impl From<Notification> for NotificationPub {
-    fn from(notification: Notification) -> NotificationPub {
+impl From<ExpandedNotification> for NotificationPub {
+    fn from(notification: ExpandedNotification) -> NotificationPub {
         NotificationPub {
             id: notification.id,
             created: notification.created.timestamp_millis(),
@@ -23,6 +24,7 @@ impl From<Notification> for NotificationPub {
             user_id: notification.user_id,
             review_id: notification.review_id,
             action_type: notification.action_type,
+            review_location: notification.review_location,
         }
     }
 }

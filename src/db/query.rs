@@ -2,7 +2,8 @@ use chrono::Duration;
 use sqlx::{types::chrono::Utc, Error, MySqlPool, Row};
 
 use super::{
-    AuthAttempt, Friend, FriendRequest, Like, Notification, PhoneAuth, Pic, Reply, Review, User,
+    AuthAttempt, ExpandedNotification, Friend, FriendRequest, Like, PhoneAuth, Pic, Reply, Review,
+    User,
 };
 
 /// All query text constants defined in this file should be formatted with the following tool:
@@ -637,19 +638,20 @@ pub async fn get_all_pics(client: &MySqlPool, review_id: &str) -> Result<Vec<Pic
 pub async fn get_notifications(
     client: &MySqlPool,
     user_id: &str,
-) -> Result<Vec<Notification>, Error> {
+) -> Result<Vec<ExpandedNotification>, Error> {
     let rows = sqlx::query(
-        "SELECT *
-            FROM   notification AS n
-        WHERE  n.review_user_id = ?
-            ORDER BY n.created DESC
-        LIMIT 50",
+        "SELECT n.id, n.created, n.review_user_id, n.user_id, n.review_id, n.action_type, r.location_name
+        FROM   notification AS n
+        INNER JOIN review as r on r.id = n.review_id
+    WHERE  n.review_user_id = ?
+        ORDER BY n.created DESC
+    LIMIT 50",
     )
     .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Notification> = rows.iter().map(|row| row.into()).collect();
+    let out: Vec<ExpandedNotification> = rows.iter().map(|row| row.into()).collect();
 
     return Ok(out);
 }
