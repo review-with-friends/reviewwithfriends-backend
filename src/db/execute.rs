@@ -475,7 +475,7 @@ pub async fn update_usernames(
 
 /// Deletes all notifications, which is essentially confirming them.
 pub async fn confirm_notifications(client: &MySqlPool, user_id: &str) -> Result<(), Error> {
-    sqlx::query("DELETE FROM notification WHERE user_id = ?")
+    sqlx::query("DELETE FROM notification WHERE review_user_id = ?")
         .bind(user_id)
         .execute(client)
         .await?;

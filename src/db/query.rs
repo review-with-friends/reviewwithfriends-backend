@@ -641,7 +641,7 @@ pub async fn get_notifications(
     let rows = sqlx::query(
         "SELECT *
             FROM   notification AS n
-        WHERE  n.user_id = ?
+        WHERE  n.review_user_id = ?
             ORDER BY n.created DESC
         LIMIT 50",
     )
