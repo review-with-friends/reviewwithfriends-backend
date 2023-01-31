@@ -640,7 +640,7 @@ pub async fn get_notifications(
     user_id: &str,
 ) -> Result<Vec<ExpandedNotification>, Error> {
     let rows = sqlx::query(
-        "SELECT n.id, n.created, n.review_user_id, n.user_id, n.review_id, n.action_type, r.location_name
+        "SELECT n.id, n.created, n.review_user_id, n.user_id, n.review_id, n.action_type, r.location_name AS review_location
         FROM   notification AS n
         INNER JOIN review as r on r.id = n.review_id
     WHERE  n.review_user_id = ?
