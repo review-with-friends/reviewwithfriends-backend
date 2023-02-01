@@ -261,3 +261,59 @@ pub fn validate_stars(stars: u8) -> Result<(), String> {
 
     return Ok(());
 }
+
+/// ```
+/// assert!(validation::validate_review_category("bank").is_ok());
+/// assert!(validation::validate_review_category("").is_ok());
+/// assert!(validation::validate_review_category("💜").is_err());
+/// ```
+pub fn validate_review_category(category: &str) -> Result<(), String> {
+    if !VALID_CATEGORIES.contains(&category) {
+        return Err("not a valid category".to_string());
+    }
+
+    return Ok(());
+}
+
+const VALID_CATEGORIES: [&str; 40] = [
+    "airport",
+    "amusementPark",
+    "aquarium",
+    "atm",
+    "bakery",
+    "bank",
+    "beach",
+    "brewery",
+    "cafe",
+    "campground",
+    "carRental",
+    "evCharger",
+    "fireStation",
+    "fitnessCenter",
+    "foodMarket",
+    "gasStation",
+    "hospital",
+    "hotel",
+    "laundry",
+    "marina",
+    "movieTheater",
+    "museum",
+    "nationalPark",
+    "nightlife",
+    "park",
+    "parking",
+    "pharmacy",
+    "police",
+    "postOffice",
+    "publicTransport",
+    "restaurant",
+    "restroom",
+    "school",
+    "stadium",
+    "store",
+    "theater",
+    "university",
+    "winery",
+    "zoo",
+    "",
+];

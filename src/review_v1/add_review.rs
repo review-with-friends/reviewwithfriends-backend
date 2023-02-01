@@ -13,8 +13,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
 use uuid::Uuid;
 use validation::{
-    validate_latitude, validate_location_name, validate_longitude, validate_review_text,
-    validate_stars,
+    validate_latitude, validate_location_name, validate_longitude, validate_review_category,
+    validate_review_text, validate_stars,
 };
 
 use super::review_types::ReviewPub;
@@ -23,6 +23,7 @@ use super::review_types::ReviewPub;
 pub struct AddReviewRequest {
     pub text: String,
     pub stars: u8,
+    pub category: String,
     pub location_name: String,
     pub latitude: f64,
     pub longitude: f64,
@@ -56,6 +57,10 @@ pub async fn add_review(
         return Err(ErrorBadRequest(err.to_string()));
     }
 
+    if let Err(err) = validate_review_category(&add_review_request.category) {
+        return Err(ErrorBadRequest(err.to_string()));
+    }
+
     // TODO: Validate incoming things are within the range.
     let review = map_review_to_db(&add_review_request, &authenticated_user.0);
 
@@ -77,7 +82,7 @@ fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
         user_id: user_id.to_string(),
         created: Utc::now().naive_utc(),
         pic_id: None,
-        category: "".to_string(),
+        category: request.category.clone(),
         text: request.text.clone(),
         stars: request.stars,
         location_name: request.location_name.clone(),
