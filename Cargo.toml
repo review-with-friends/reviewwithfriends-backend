@@ -1,6 +1,6 @@
 [package]
 name = "spotster-backend"
-version = "0.2.35-alpha"
+version = "0.2.36-alpha"
 edition = "2021"
 
 [dependencies]
@@ -17,6 +17,8 @@ rand = "0.8.5"
 actix-web = "4.2.1"
 actix-rt = "2.7.0"
 tokio = "1.21.2"
+base64 = "0.21.0"
+futures = "0.3.17"
 futures-util = { version = "0.3.17", default-features = false, features = ["std"] }
 openssl = { version = "0.10", features = ["vendored"] }
 opentelemetry = { version = "0.18.0", features = ["rt-tokio"] }

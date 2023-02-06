@@ -1,3 +1,6 @@
+use std::io::Cursor;
+
+use base64::engine::general_purpose;
 use jpeg_decoder::Decoder;
 
 /// All issued codes are exactly 9 in length and contain
@@ -95,6 +98,37 @@ pub fn validate_review_pic(bytes: &[u8]) -> Result<(u16, u16), String> {
 
     let mut decoder = Decoder::new(bytes);
     let decode_res = decoder.decode();
+
+    match decode_res {
+        Ok(_) => {
+            if let Some(metadata) = decoder.info() {
+                if metadata.height > 4032 {
+                    return Err("image too tall".to_string());
+                }
+
+                if metadata.width > 3024 {
+                    return Err("image too wide".to_string());
+                }
+
+                return Ok((metadata.width, metadata.height));
+            } else {
+                return Err("metadata unreadable".to_string());
+            }
+        }
+        Err(_) => return Err("unable to decode pic".to_string()),
+    }
+}
+
+/// Validates the review pic and returns the size.
+///
+/// Tuple return is (metadata.width, metadata.height)
+pub fn validate_review_pic_b64(b64: &str) -> Result<(u16, u16), String> {
+    let mut wrapped_reader = Cursor::new(b64);
+    let b64_decoder =
+        base64::read::DecoderReader::new(&mut wrapped_reader, &general_purpose::STANDARD);
+
+    let mut decoder = Decoder::new(b64_decoder);
+    let decode_res = decoder.read_info();
 
     match decode_res {
         Ok(_) => {

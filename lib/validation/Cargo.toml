@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 jpeg-decoder = "0.3.0"
+base64 = "0.21.0"
