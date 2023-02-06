@@ -97,7 +97,7 @@ pub fn validate_review_pic(bytes: &[u8]) -> Result<(u16, u16), String> {
     }
 
     let mut decoder = Decoder::new(bytes);
-    let decode_res = decoder.decode();
+    let decode_res = decoder.read_info();
 
     match decode_res {
         Ok(_) => {
@@ -108,6 +108,13 @@ pub fn validate_review_pic(bytes: &[u8]) -> Result<(u16, u16), String> {
 
                 if metadata.width > 3024 {
                     return Err("image too wide".to_string());
+                }
+
+                let ratio_p = metadata.height / metadata.width;
+                let ratio_q = metadata.width / metadata.height;
+
+                if ratio_p >= 4 || ratio_q >= 4 {
+                    return Err("aspect ratio of image isnt allowed".to_string());
                 }
 
                 return Ok((metadata.width, metadata.height));
@@ -139,6 +146,13 @@ pub fn validate_review_pic_b64(b64: &str) -> Result<(u16, u16), String> {
 
                 if metadata.width > 3024 {
                     return Err("image too wide".to_string());
+                }
+
+                let ratio_p = metadata.height / metadata.width;
+                let ratio_q = metadata.width / metadata.height;
+
+                if ratio_p >= 4 || ratio_q >= 4 {
+                    return Err("aspect ratio of image isnt allowed".to_string());
                 }
 
                 return Ok((metadata.width, metadata.height));
