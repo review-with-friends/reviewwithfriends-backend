@@ -1,6 +1,6 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{get_review, remove_review_and_children, Review},
+    db::{get_all_pics, get_review, remove_review_and_children, Review},
     pic_v1::shared_utils::best_effort_delete_pic,
 };
 use actix_web::{
@@ -54,8 +54,15 @@ pub async fn remove_review(
         return Ok(HttpResponse::InternalServerError().body("unable to delete records"));
     }
 
-    if let Some(pic_id) = review.pic_id {
-        best_effort_delete_pic(&s3_client, &pool, &pic_id).await;
+    let pics_res = get_all_pics(&pool, &review.id).await;
+
+    match pics_res {
+        Ok(pics) => {
+            for pic in pics {
+                best_effort_delete_pic(&s3_client, &pool, &pic.id).await;
+            }
+        }
+        Err(_) => {}
     }
 
     return Ok(HttpResponse::Ok().finish());
