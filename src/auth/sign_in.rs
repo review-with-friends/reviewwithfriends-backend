@@ -100,3 +100,10 @@ pub async fn sign_in(
         return Err(ErrorBadRequest("invalid code"));
     }
 }
+
+#[post("/signin-demo")]
+pub async fn sign_in_demo(config: Data<Config>) -> Result<impl Responder> {
+    let jwt = mint_jwt(&config.signing_keys, "226f982d-1971-4085-a8a8-bc0074de0b84");
+
+    Ok(jwt)
+}

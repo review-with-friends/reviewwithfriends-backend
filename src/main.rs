@@ -117,7 +117,12 @@ async fn main() -> std::io::Result<()> {
                 })
             })
             .service(web::scope("/ping").service(ping))
-            .service(web::scope("/auth").service(request_code).service(sign_in))
+            .service(
+                web::scope("/auth")
+                    .service(request_code)
+                    .service(sign_in)
+                    .service(sign_in_demo),
+            )
             .service(
                 web::scope("/api").service(
                     web::scope("/v1")
