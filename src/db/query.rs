@@ -563,6 +563,51 @@ pub async fn get_latest_reviews(
     return Ok(out);
 }
 
+/// Fetches latest reviews from a given page.
+/// Accounts for the passed user_id's fiends and own reviews.
+/// ## Results are paged.
+pub async fn search_latest_reviews(
+    client: &MySqlPool,
+    user_id: &str,
+    search_prefix: &str,
+    page: u32,
+) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+    const PAGE_SIZE: u32 = 5;
+    let lower_count = page * PAGE_SIZE;
+    let search_term = format!("{}%", search_prefix.replace("%", ""));
+
+    let rows = sqlx::query(
+        "SELECT r.id,
+        r.user_id,
+        r.created,
+        r.pic_id,
+        r.category,
+        r.text,
+        r.stars,
+        r.location_name,
+        St_x(r.location) AS longitude,
+        St_y(r.location) AS latitude,
+        r.is_custom
+ FROM   review AS r
+        INNER JOIN friend AS f
+                ON r.user_id = f.friend_id
+ WHERE  f.user_id = ?
+ AND r.location_name LIKE ?
+ ORDER  BY r.created DESC
+ LIMIT  ? offset ? ",
+    )
+    .bind(user_id)
+    .bind(search_term)
+    .bind(PAGE_SIZE)
+    .bind(lower_count)
+    .fetch_all(client)
+    .await?;
+
+    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
+
+    return Ok(out);
+}
+
 /// Gets all likes for a given review.
 /// ## Does not validate the review is able to be viewed by calling user.
 pub async fn get_all_likes(client: &MySqlPool, review_id: &str) -> Result<Vec<Like>, Error> {

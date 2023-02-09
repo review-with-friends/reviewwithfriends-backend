@@ -27,3 +27,6 @@ pub use edit_review::*;
 
 pub mod get_review;
 pub use get_review::*;
+
+pub mod search_latest;
+pub use search_latest::*;

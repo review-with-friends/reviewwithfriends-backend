@@ -29,7 +29,7 @@ use reqwest::ClientBuilder;
 use review_v1::{
     add_review, edit_review, get_latest, get_review_by_id, get_reviews_from_loc,
     get_reviews_from_map_bounds, get_reviews_from_map_bounds_with_exclusions,
-    get_reviews_from_user, remove_review,
+    get_reviews_from_user, remove_review, search_latest,
 };
 use sqlx::MySqlPool;
 use std::{collections::HashMap, env, time::Duration};
@@ -158,6 +158,7 @@ async fn main() -> std::io::Result<()> {
                                 .service(add_review)
                                 .service(remove_review)
                                 .service(get_review_by_id)
+                                .service(search_latest)
                                 .service(edit_review),
                         )
                         .service(
