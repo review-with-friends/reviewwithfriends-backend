@@ -53,7 +53,7 @@ pub async fn update_user(
     }
 
     match &update_request.name {
-        Some(name) => new_name = name.to_string(),
+        Some(name) => new_name = name.to_lowercase(),
         None => new_name = user.name.clone(),
     }
 
