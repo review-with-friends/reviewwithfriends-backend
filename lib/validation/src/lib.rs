@@ -229,7 +229,6 @@ pub fn validate_name(text: &str) -> Result<(), String> {
 /// assert!(validation::validate_display_name(&"💜".repeat(27)).is_err());
 /// ```
 pub fn validate_display_name(text: &str) -> Result<(), String> {
-    println!("{}", text.len());
     if text.chars().count() > 26 {
         return Err(
             "display name too long - max 26 chars (emojis count for 2-4 chars)".to_string(),
