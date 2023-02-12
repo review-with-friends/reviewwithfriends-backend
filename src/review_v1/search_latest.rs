@@ -38,7 +38,7 @@ pub async fn search_latest(
                 .collect();
             Ok(Json(reviews_pub))
         }
-        Err(err) => {
+        Err(_) => {
             return Err(ErrorInternalServerError(
                 "unable to search latest reviews".to_string(),
             ));

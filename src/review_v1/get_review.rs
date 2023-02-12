@@ -84,7 +84,7 @@ pub async fn get_review_by_id(
                 .map(|f| -> PicPub { f.into() })
                 .collect();
         }
-        Err(err) => {
+        Err(_) => {
             return Err(ErrorInternalServerError("unable to get pics"));
         }
     }
