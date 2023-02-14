@@ -28,6 +28,8 @@ pub struct AddReviewRequest {
     pub category: String,
     pub location_name: String,
     pub pic: String,
+    pub pic_p: Option<String>,
+    pub pic_q: Option<String>,
     pub latitude: f64,
     pub longitude: f64,
     pub is_custom: bool,
@@ -65,15 +67,13 @@ pub async fn add_review(
         return Err(ErrorBadRequest(err.to_string()));
     }
 
-    let validation_result = validate_review_pic_b64(&add_review_request.pic);
+    let validation_result = validate_pics(&add_review_request);
 
-    let width: u16;
-    let height: u16;
+    let pics: Vec<PicToUpload>;
 
     match validation_result {
-        Ok(size) => {
-            width = size.0;
-            height = size.1;
+        Ok(pics_tmp) => {
+            pics = pics_tmp;
         }
         Err(err) => {
             return Ok(HttpResponse::BadRequest().body(err));
@@ -86,49 +86,121 @@ pub async fn add_review(
 
     match create_res {
         Ok(_) => {
-            let pic_res = create_pic(&pool, Some(review.id.clone()), width, height).await;
+            let pic_upload_res = upload_and_store_pics(s3_client, &pool, &review, pics).await;
 
-            match pic_res {
-                Ok(pic) => {
-                    if let Ok(bytes) = general_purpose::STANDARD.decode(&add_review_request.pic) {
-                        if let Err(_) = s3_client
-                            .put_object(PutObjectRequest {
-                                body: Some(ByteStream::from(bytes)),
-                                bucket: "bout".to_string(),
-                                key: pic.id.clone(),
-                                acl: Some("public-read".to_string()),
-                                ..Default::default()
-                            })
-                            .await
-                        {
-                            let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
-                            let _ = remove_review_and_children(&pool, &review.id).await;
-
-                            return Ok(HttpResponse::InternalServerError()
-                                .body("unable to store review pic"));
-                        }
-
-                        return Ok(HttpResponse::Ok().json(ReviewPub::from(review)));
-                    } else {
-                        let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
-                        let _ = remove_review_and_children(&pool, &review.id).await;
-
-                        return Ok(
-                            HttpResponse::InternalServerError().body("failed to read pic buffer")
-                        );
-                    }
-                }
-                Err(_) => {
-                    return Ok(
-                        HttpResponse::InternalServerError().body("unable to create review pic")
-                    );
-                }
+            match pic_upload_res {
+                Ok(_) => return Ok(HttpResponse::Ok().json(ReviewPub::from(review))),
+                Err(err) => return Err(ErrorInternalServerError(err)),
             }
         }
         Err(_) => {
             return Err(ErrorInternalServerError("failed to create review"));
         }
     }
+}
+
+fn validate_pics(add_review_request: &AddReviewRequest) -> Result<Vec<PicToUpload>, String> {
+    let mut output: Vec<PicToUpload> = vec![];
+
+    let validation_result = validate_review_pic_b64(&add_review_request.pic);
+
+    match validation_result {
+        Ok(size) => output.push(PicToUpload {
+            data: &add_review_request.pic,
+            width: size.0,
+            height: size.1,
+        }),
+        Err(err) => {
+            return Err(err);
+        }
+    }
+
+    if let Some(pic_p) = &add_review_request.pic_p {
+        let validation_result = validate_review_pic_b64(pic_p);
+
+        match validation_result {
+            Ok(size) => output.push(PicToUpload {
+                data: &pic_p,
+                width: size.0,
+                height: size.1,
+            }),
+            Err(err) => {
+                return Err(err);
+            }
+        }
+    }
+
+    if let Some(pic_q) = &add_review_request.pic_q {
+        let validation_result = validate_review_pic_b64(pic_q);
+
+        match validation_result {
+            Ok(size) => output.push(PicToUpload {
+                data: &pic_q,
+                width: size.0,
+                height: size.1,
+            }),
+            Err(err) => {
+                return Err(err);
+            }
+        }
+    }
+
+    return Ok(output);
+}
+
+struct PicToUpload<'a> {
+    data: &'a str,
+    width: u16,
+    height: u16,
+}
+
+async fn upload_and_store_pics(
+    s3_client: Data<S3Client>,
+    pool: &MySqlPool,
+    review: &Review,
+    pics: Vec<PicToUpload<'_>>,
+) -> Result<(), String> {
+    for pic_data in pics {
+        let pic_res = create_pic(
+            &pool,
+            Some(review.id.clone()),
+            pic_data.width,
+            pic_data.height,
+        )
+        .await;
+
+        match pic_res {
+            Ok(pic) => {
+                if let Ok(bytes) = general_purpose::STANDARD.decode(pic_data.data) {
+                    if let Err(_) = s3_client
+                        .put_object(PutObjectRequest {
+                            body: Some(ByteStream::from(bytes)),
+                            bucket: "bout".to_string(),
+                            key: pic.id.clone(),
+                            acl: Some("public-read".to_string()),
+                            ..Default::default()
+                        })
+                        .await
+                    {
+                        let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
+                        let _ = remove_review_and_children(&pool, &review.id).await;
+
+                        return Err("unable to store review pic".to_string());
+                    }
+                } else {
+                    let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
+                    let _ = remove_review_and_children(&pool, &review.id).await;
+
+                    return Err("failed to read pic buffer".to_string());
+                }
+            }
+            Err(_) => {
+                return Err("unable to create review pic".to_string());
+            }
+        }
+    }
+
+    return Ok(());
 }
 
 fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
