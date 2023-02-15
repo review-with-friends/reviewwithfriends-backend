@@ -1,6 +1,6 @@
 [package]
 name = "spotster-backend"
-version = "0.2.42-alpha"
+version = "0.2.43-alpha"
 edition = "2021"
 
 [dependencies]
