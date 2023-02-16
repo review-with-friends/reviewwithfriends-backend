@@ -625,6 +625,44 @@ pub async fn get_all_likes(client: &MySqlPool, review_id: &str) -> Result<Vec<Li
     return Ok(out);
 }
 
+/// Gets all likes that a user has made
+pub async fn get_liked_reviews(
+    client: &MySqlPool,
+    user_id: &str,
+    page: u32,
+) -> Result<Vec<Review>, Error> {
+    const PAGE_SIZE: u32 = 5;
+    let lower_count = page * PAGE_SIZE;
+
+    let rows = sqlx::query(
+        "SELECT r.id,
+            r.user_id,
+            r.created,
+            r.pic_id,
+            r.category,
+            r.text,
+            r.stars,
+            r.location_name,
+            St_x(r.location) AS longitude,
+            St_y(r.location) AS latitude,
+            r.is_custom
+            FROM   review as r
+        INNER JOIN likes as l on r.id = l.review_id
+            WHERE  l.user_id = ?
+        ORDER  BY l.created DESC
+        LIMIT  ? offset ? ",
+    )
+    .bind(user_id)
+    .bind(PAGE_SIZE)
+    .bind(lower_count)
+    .fetch_all(client)
+    .await?;
+
+    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
+
+    return Ok(out);
+}
+
 /// Gets whether a specific review is already liked by a user.
 pub async fn is_already_liked(
     client: &MySqlPool,

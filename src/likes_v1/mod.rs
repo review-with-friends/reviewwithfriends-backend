@@ -9,3 +9,6 @@ pub use unlike_review::*;
 
 pub mod like_types;
 pub use like_types::*;
+
+pub mod get_current_likes;
+pub use get_current_likes::*;

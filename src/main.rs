@@ -12,7 +12,7 @@ use friend_v1::{
 use futures_util::FutureExt;
 use images::create_s3_client;
 use jwt::{encode_jwt_secret, SigningKeys};
-use likes_v1::{get_likes, like_review, unlike_review};
+use likes_v1::{get_current_likes, get_likes, like_review, unlike_review};
 use notifications_v1::{confirm_notifications, get_notifications};
 use opentelemetry::sdk::{
     export::trace::stdout,
@@ -173,7 +173,8 @@ async fn main() -> std::io::Result<()> {
                             web::scope("/like")
                                 .service(get_likes)
                                 .service(like_review)
-                                .service(unlike_review),
+                                .service(unlike_review)
+                                .service(get_current_likes),
                         )
                         .service(
                             web::scope("/reply")
