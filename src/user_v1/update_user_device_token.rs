@@ -13,8 +13,6 @@ pub struct UpdateUserDeviceTokenRequest {
     device_token: String,
 }
 
-/// Allows the updating of display_name and name fields.
-/// display_name isn't unique in the table; but name is.
 #[post("/device_token")]
 pub async fn update_user_device_token(
     authenticated_user: ReqData<AuthenticatedUser>,
