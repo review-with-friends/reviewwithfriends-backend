@@ -37,6 +37,8 @@ use std::sync::Mutex;
 use std::{collections::HashMap, env, time::Duration};
 use user_v1::{get_me, get_user_by_id, get_user_by_name, search_user_by_name, update_user};
 
+use crate::user_v1::update_user_device_token;
+
 mod auth;
 mod authorization;
 mod compound_types;
@@ -73,7 +75,6 @@ async fn main() -> std::io::Result<()> {
         .unwrap();
 
     let apn_token = mint_apn_jwt(&config.apn_key);
-    println!("{}", apn_token);
 
     let apn_client = web::Data::new(APNClient {
         client: ClientBuilder::new()
@@ -185,7 +186,8 @@ async fn main() -> std::io::Result<()> {
                                 .service(get_user_by_id)
                                 .service(get_user_by_name)
                                 .service(update_user)
-                                .service(get_me),
+                                .service(get_me)
+                                .service(update_user_device_token),
                         )
                         .service(
                             web::scope("/like")
@@ -220,14 +222,12 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:53861/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:55167/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),
             newrelic_key: String::from("Default"),
-            apn_key: encode_apn_jwt_secret(
-                "MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQggCqCPlL7EUaJ2hxgn2PPnO77Wv9C7n+1Mb+EAPPKc+GgCgYIKoZIzj0DAQehRANCAAT+mwx0Vp/O4IFTFbt/WBsVXtqo9QMoj02WVj1aihVpHwHpOLhYXKKWCGV4X1P6/cKGGtmcNq89Hk4Xll5ONZZr",
-            ),
+            apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
         },
         Err(_) => Config {
             twilio_key: env::var("TWILIO").unwrap(),
@@ -236,7 +236,7 @@ fn build_config() -> Config {
             spaces_key: env::var("SPACES_KEY").unwrap(),
             spaces_secret: env::var("SPACES_SECRET").unwrap(),
             newrelic_key: env::var("NR_KEY").unwrap(),
-            apn_key: encode_apn_jwt_secret(""),
+            apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
         },
     }
 }

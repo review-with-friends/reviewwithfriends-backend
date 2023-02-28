@@ -1,8 +1,4 @@
-use base64::{
-    alphabet,
-    engine::{self, general_purpose},
-    Engine as _,
-};
+use base64::{engine::general_purpose, Engine as _};
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
@@ -58,7 +54,6 @@ struct APNClaims {
 pub fn encode_apn_jwt_secret(jwt_secret: &str) -> APNSigningKey {
     let bytes = general_purpose::STANDARD.decode(jwt_secret).unwrap();
     APNSigningKey(EncodingKey::from_ec_der(&bytes))
-    //APNSigningKey(EncodingKey::from_secret(jwt_secret.as_ref()))
 }
 
 pub fn mint_apn_jwt(keys: &APNSigningKey) -> String {

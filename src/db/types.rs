@@ -20,6 +20,8 @@ pub struct User {
     /// Id of the profile image pic.
     /// Used to find avatar image.
     pub pic_id: String,
+
+    pub device_token: Option<String>,
 }
 
 impl From<&MySqlRow> for User {
@@ -31,6 +33,7 @@ impl From<&MySqlRow> for User {
             phone: row.get("phone"),
             created: row.get("created"),
             pic_id: row.get("pic_id"),
+            device_token: row.get("device_token"),
         }
     }
 }

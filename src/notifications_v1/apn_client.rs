@@ -1,6 +1,7 @@
 use chrono::prelude::*;
 use jwt::{mint_apn_jwt, APNSigningKey};
 use reqwest::Client;
+use serde::Serialize;
 use std::sync::Mutex;
 
 /// Client use to communicate with Apple Push-Notification Network.
@@ -16,7 +17,7 @@ impl APNClient {
         mint_apn_jwt(key)
     }
 
-    pub async fn send_notification(&self) -> Result<(), String> {
+    pub async fn send_notification(&self, device_token: &str, message: &str) -> Result<(), String> {
         let token: String;
 
         {
@@ -43,28 +44,54 @@ impl APNClient {
             }
         }
 
+        let pn = PushNotification {
+            aps: Alert {
+                alert: message.to_string(),
+            },
+        };
+
+        let body: String;
+        let body_res = serde_json::to_string(&pn);
+
+        if let Ok(body_ok) = body_res {
+            body = body_ok;
+        } else {
+            return Ok(());
+        }
+
         let result = self
             .client
-            .post("https://api.sandbox.push.apple.com/3/device/3015A7F5BEA16B7A640A152C617BA52D3396DA8194AFCCF017D1BEE32EDB2AC2")
+            .post(format!(
+                "https://api.sandbox.push.apple.com/3/device/{}",
+                device_token
+            ))
             .header("authorization", format!("bearer {}", &token))
             .header("apns-push-type", "alert")
             .header("apns-expiration", "0")
             .header("apns-id", "eabeae54-14a8-11e5-b60b-1697f925ec7b")
             .header("apns-topic", "com.spacedoglabs.spotster")
-            .header("apns-priority","10")
-            .body("{ \"aps\" : { \"alert\" : \"Hello\", \"badge\" : 1 } }")
+            .header("apns-priority", "10")
+            .body(body)
             .send()
             .await;
 
         match result {
-            Ok(resp) => {
-                println!("{}", resp.status());
-                println!("{}", resp.text().await.unwrap());
+            Ok(_) => {
                 return Ok(());
             }
-            Err(error) => println!("{}", error),
+            Err(_) => {
+                return Ok(());
+            }
         }
-
-        Ok(())
     }
+}
+
+#[derive(Serialize)]
+struct PushNotification {
+    pub aps: Alert,
+}
+
+#[derive(Serialize)]
+struct Alert {
+    pub alert: String,
 }

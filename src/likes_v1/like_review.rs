@@ -1,6 +1,6 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{create_like, create_notification, get_review, is_already_liked, Review},
+    db::{create_like, create_notification, get_review, get_user, is_already_liked, Review},
     notifications_v1::{APNClient, ActionType},
 };
 use actix_web::{
@@ -58,7 +58,7 @@ pub async fn like_review(
 
     match create_res {
         Ok(_) => {
-            // Creating the notificaiton is best effort. We may look into not awaiting this;
+            // Creating the notification is best effort. We may look into not awaiting this;
             // though unsure of how the tokio runtime closes out the webrequest.
             let _ = create_notification(
                 &pool,
@@ -69,12 +69,41 @@ pub async fn like_review(
             )
             .await;
 
-            let _ = apn_client.send_notification().await;
+            let user_res = get_user(&pool, &review.user_id).await;
+
+            // Best effort sending the notification through apple sevices.
+            match user_res {
+                Ok(user_opt) => {
+                    if let Some(user) = user_opt {
+                        if let Some(device_token) = user.device_token {
+                            let calling_user_res = get_user(&pool, &authenticated_user.0).await;
+
+                            match calling_user_res {
+                                Ok(calling_user_opt) => {
+                                    if let Some(calling_user) = calling_user_opt {
+                                        let _ = apn_client
+                                            .send_notification(
+                                                &device_token,
+                                                &format!(
+                                                    "{} added your review to their favorites",
+                                                    calling_user.display_name
+                                                ),
+                                            )
+                                            .await;
+                                    }
+                                }
+                                Err(_) => {}
+                            }
+                        }
+                    }
+                }
+                Err(_) => {}
+            }
 
             return Ok(HttpResponse::Ok().finish());
         }
         Err(_) => {
-            return Err(ErrorInternalServerError("failed to create review"));
+            return Err(ErrorInternalServerError("failed to like review"));
         }
     }
 }
