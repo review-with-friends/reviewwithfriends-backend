@@ -73,7 +73,7 @@ pub async fn request_code(
                     display_name: new_username.clone(),
                     phone: request_code_request.phone.to_string(),
                     created: Utc::now().naive_utc(),
-                    pic_id: "".to_string(),
+                    pic_id: "default".to_string(),
                 };
 
                 let create_res = create_user(&pool, &existing_user).await;
