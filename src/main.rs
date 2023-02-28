@@ -5,15 +5,16 @@ use actix_web::{
 };
 use auth::*;
 use authorization::Authentication;
+use chrono::Utc;
 use friend_v1::{
     accept_friend, add_friend, cancel_friend, decline_friend, full_friends, get_friends,
     get_ignored_friends, get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
 };
 use futures_util::FutureExt;
 use images::create_s3_client;
-use jwt::{encode_jwt_secret, SigningKeys};
+use jwt::{encode_apn_jwt_secret, encode_jwt_secret, mint_apn_jwt, APNSigningKey, SigningKeys};
 use likes_v1::{get_current_likes, get_likes, like_review, unlike_review};
-use notifications_v1::{confirm_notifications, get_notifications};
+use notifications_v1::{confirm_notifications, get_notifications, APNClient};
 use opentelemetry::sdk::{
     export::trace::stdout,
     trace::{self, Sampler},
@@ -32,6 +33,7 @@ use review_v1::{
     get_reviews_from_user, remove_review, search_latest,
 };
 use sqlx::MySqlPool;
+use std::sync::Mutex;
 use std::{collections::HashMap, env, time::Duration};
 use user_v1::{get_me, get_user_by_id, get_user_by_name, search_user_by_name, update_user};
 
@@ -56,6 +58,7 @@ pub struct Config {
     spaces_key: String,
     spaces_secret: String,
     newrelic_key: String,
+    apn_key: APNSigningKey,
 }
 
 const PIC_CONFIG_LIMIT: usize = 4_262_144;
@@ -68,6 +71,20 @@ async fn main() -> std::io::Result<()> {
         .timeout(Duration::new(5, 0))
         .build()
         .unwrap();
+
+    let apn_token = mint_apn_jwt(&config.apn_key);
+    println!("{}", apn_token);
+
+    let apn_client = web::Data::new(APNClient {
+        client: ClientBuilder::new()
+            .http2_prior_knowledge()
+            .timeout(Duration::new(5, 0))
+            .build()
+            .unwrap(),
+        key: config.apn_key.clone(),
+        token: Mutex::new(apn_token),
+        issued_time: Mutex::new(Utc::now().timestamp()),
+    });
 
     let pool: MySqlPool = MySqlPool::connect(&config.db_connection_string)
         .await
@@ -83,6 +100,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(pool.clone()))
             .app_data(Data::new(client.clone()))
             .app_data(Data::new(http_client.clone()))
+            .app_data(apn_client.clone())
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
             .wrap(Authentication)
             .wrap_fn(|req, srv| {
@@ -207,6 +225,9 @@ fn build_config() -> Config {
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),
             newrelic_key: String::from("Default"),
+            apn_key: encode_apn_jwt_secret(
+                "MIGTAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBHkwdwIBAQQggCqCPlL7EUaJ2hxgn2PPnO77Wv9C7n+1Mb+EAPPKc+GgCgYIKoZIzj0DAQehRANCAAT+mwx0Vp/O4IFTFbt/WBsVXtqo9QMoj02WVj1aihVpHwHpOLhYXKKWCGV4X1P6/cKGGtmcNq89Hk4Xll5ONZZr",
+            ),
         },
         Err(_) => Config {
             twilio_key: env::var("TWILIO").unwrap(),
@@ -215,6 +236,7 @@ fn build_config() -> Config {
             spaces_key: env::var("SPACES_KEY").unwrap(),
             spaces_secret: env::var("SPACES_SECRET").unwrap(),
             newrelic_key: env::var("NR_KEY").unwrap(),
+            apn_key: encode_apn_jwt_secret(""),
         },
     }
 }

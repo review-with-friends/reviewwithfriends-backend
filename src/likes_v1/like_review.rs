@@ -1,7 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{create_like, create_notification, get_review, is_already_liked, Review},
-    notifications_v1::ActionType,
+    notifications_v1::{APNClient, ActionType},
 };
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
@@ -22,6 +22,7 @@ pub struct LikeReviewRequest {
 pub async fn like_review(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
+    apn_client: Data<APNClient>,
     like_review_request: Query<LikeReviewRequest>,
 ) -> Result<impl Responder> {
     let review_res = get_review(&pool, &authenticated_user.0, &like_review_request.review_id).await;
@@ -67,6 +68,8 @@ pub async fn like_review(
                 ActionType::Like.into(),
             )
             .await;
+
+            let _ = apn_client.send_notification().await;
 
             return Ok(HttpResponse::Ok().finish());
         }
