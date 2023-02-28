@@ -74,6 +74,7 @@ pub async fn request_code(
                     phone: request_code_request.phone.to_string(),
                     created: Utc::now().naive_utc(),
                     pic_id: "default".to_string(),
+                    device_token: None,
                 };
 
                 let create_res = create_user(&pool, &existing_user).await;

@@ -1,5 +1,6 @@
+use base64::{engine::general_purpose, Engine as _};
 use chrono::Utc;
-use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
 /// Wrapper to ensure EncodingKey and DecodingKeys are persisted for the duration of the service.
@@ -38,4 +39,34 @@ pub fn validate_jwt(keys: &SigningKeys, token: &str) -> Option<String> {
         Ok(t) => Some(t.claims.sub),
         Err(_) => None,
     }
+}
+
+/// Wrapper to ensure the APN Signing key is always loaded for sending push notifications.
+#[derive(Clone)]
+pub struct APNSigningKey(pub EncodingKey);
+
+#[derive(Debug, Serialize, Deserialize)]
+struct APNClaims {
+    iss: String,
+    iat: usize,
+}
+
+pub fn encode_apn_jwt_secret(jwt_secret: &str) -> APNSigningKey {
+    let bytes = general_purpose::STANDARD.decode(jwt_secret).unwrap();
+    APNSigningKey(EncodingKey::from_ec_der(&bytes))
+}
+
+pub fn mint_apn_jwt(keys: &APNSigningKey) -> String {
+    const KEY_ID: &str = "63HSBC6B65";
+    const TEAM_ID: &str = "W3CBQB54QR";
+
+    let claims = APNClaims {
+        iss: TEAM_ID.to_string(),
+        iat: Utc::now().timestamp() as usize,
+    };
+
+    let mut header = Header::new(Algorithm::ES256);
+    header.kid = Some(KEY_ID.to_string());
+
+    encode(&header, &claims, &keys.0).unwrap()
 }

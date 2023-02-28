@@ -3,5 +3,6 @@ CREATE TABLE user (
     created DATETIME,
     name VARCHAR(30),
     display_name VARCHAR(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
-    phone VARCHAR(25)
+    phone VARCHAR(25),
+    device_token VARCHAR(64) NULL DEFAULT NULL
 );

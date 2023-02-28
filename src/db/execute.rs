@@ -473,6 +473,21 @@ pub async fn update_usernames(
     return Ok(());
 }
 
+/// Updates a users device token for push notifications.
+pub async fn update_device_token(
+    client: &MySqlPool,
+    user_id: &str,
+    device_token: &str,
+) -> Result<(), Error> {
+    sqlx::query("UPDATE user SET device_token = ? WHERE id = ?")
+        .bind(device_token)
+        .bind(user_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
 /// Deletes all notifications, which is essentially confirming them.
 pub async fn confirm_notifications(client: &MySqlPool, user_id: &str) -> Result<(), Error> {
     sqlx::query("DELETE FROM notification WHERE review_user_id = ?")

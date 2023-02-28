@@ -2,7 +2,9 @@ use crate::{
     authorization::AuthenticatedUser,
     db::{
         create_friend_request, does_user_exist, get_current_friends, get_outgoing_friend_requests,
+        get_user,
     },
+    notifications_v1::APNClient,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -23,6 +25,7 @@ pub struct SendRequest {
 pub async fn add_friend(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
+    apn_client: Data<APNClient>,
     send_request: Query<SendRequest>,
 ) -> Result<impl Responder> {
     if &authenticated_user.0 == &send_request.friend_id {
@@ -71,7 +74,41 @@ pub async fn add_friend(
                     .await;
 
                     match create_res {
-                        Ok(_) => return Ok(HttpResponse::Ok()),
+                        Ok(_) => {
+                            let user_res = get_user(&pool, &send_request.friend_id).await;
+
+                            // Best effort sending the notification through apple sevices.
+                            match user_res {
+                                Ok(user_opt) => {
+                                    if let Some(user) = user_opt {
+                                        if let Some(device_token) = user.device_token {
+                                            let calling_user_res =
+                                                get_user(&pool, &authenticated_user.0).await;
+
+                                            match calling_user_res {
+                                                Ok(calling_user_opt) => {
+                                                    if let Some(calling_user) = calling_user_opt {
+                                                        let _ = apn_client
+                                                            .send_notification(
+                                                                &device_token,
+                                                                &format!(
+                                                                    "{} wants to be your friend",
+                                                                    calling_user.display_name
+                                                                ),
+                                                            )
+                                                            .await;
+                                                    }
+                                                }
+                                                Err(_) => {}
+                                            }
+                                        }
+                                    }
+                                }
+                                Err(_) => {}
+                            }
+
+                            return Ok(HttpResponse::Ok());
+                        }
                         Err(_) => {
                             return Err(ErrorInternalServerError("could not create friend request"))
                         }

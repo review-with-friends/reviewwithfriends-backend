@@ -1236,6 +1236,7 @@ dependencies = [
 name = "jwt"
 version = "0.1.0"
 dependencies = [
+ "base64 0.21.0",
  "chrono",
  "jsonwebtoken",
  "serde",
@@ -2388,7 +2389,7 @@ dependencies = [
 
 [[package]]
 name = "spotster-backend"
-version = "0.2.45-alpha"
+version = "0.2.46-alpha"
 dependencies = [
  "actix-rt",
  "actix-web",
