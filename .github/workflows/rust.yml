@@ -46,7 +46,7 @@ jobs:
         run: |
           if echo ${{ env.container_exists  == '1' }} | grep -c "true"
           then
-            docker build -t registry.digitalocean.com/spacedoglabs/backends:spotster-${{steps.crate-version.outputs.version}} . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}" --build-arg "NR_KEY=${{ secrets.NR_KEY }} --build-arg "APN_KEY=${{ secrets.APN_KEY }}"
+            docker build -t registry.digitalocean.com/spacedoglabs/backends:spotster-${{steps.crate-version.outputs.version}} . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}" --build-arg "NR_KEY=${{ secrets.NR_KEY }}" --build-arg "APN_KEY=${{ secrets.APN_KEY }}"
           else
             echo "Skipped Building an Image. Image was found."
           fi
