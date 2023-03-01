@@ -16,7 +16,7 @@ pub struct DiscoveryRequest {
     numbers: Vec<String>,
 }
 
-/// Allows users to cancel their already sent friend request.
+/// Allows users to discover friends using the app from sharing their contacts.
 #[post("/discover_friends")]
 pub async fn discover_friends(
     _: ReqData<AuthenticatedUser>,
