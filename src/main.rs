@@ -7,8 +7,9 @@ use auth::*;
 use authorization::Authentication;
 use chrono::Utc;
 use friend_v1::{
-    accept_friend, add_friend, cancel_friend, decline_friend, full_friends, get_friends,
-    get_ignored_friends, get_incoming_friends, get_outgoing_friends, ignore_friend, remove_friend,
+    accept_friend, add_friend, cancel_friend, decline_friend, discover_friends, full_friends,
+    get_friends, get_ignored_friends, get_incoming_friends, get_outgoing_friends, ignore_friend,
+    remove_friend,
 };
 use futures_util::FutureExt;
 use images::create_s3_client;
@@ -157,7 +158,8 @@ async fn main() -> std::io::Result<()> {
                                 .service(cancel_friend)
                                 .service(decline_friend)
                                 .service(remove_friend)
-                                .service(ignore_friend),
+                                .service(ignore_friend)
+                                .service(discover_friends),
                         )
                         .service(
                             web::scope("/pic")

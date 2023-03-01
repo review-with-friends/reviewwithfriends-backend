@@ -33,3 +33,6 @@ pub use friend_types::*;
 
 pub mod full_friends;
 pub use full_friends::*;
+
+pub mod contact_discovery;
+pub use contact_discovery::*;
