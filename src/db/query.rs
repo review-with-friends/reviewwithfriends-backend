@@ -738,3 +738,24 @@ pub async fn get_notifications(
 
     return Ok(out);
 }
+
+/// Searches for users that match any of the given phone numbers.
+/// It's expected the caller randomize the ordering to ensure
+/// reverse lookups are not as efficient.
+pub async fn phone_number_discovery(
+    client: &MySqlPool,
+    numbers: &Vec<&str>,
+) -> Result<Vec<User>, Error> {
+    let params = format!("?{}", ", ?".repeat(numbers.len() - 1));
+    let query_str = format!("SELECT * FROM user WHERE phone IN ( {} )", params);
+
+    let mut query = sqlx::query(&query_str);
+    for i in numbers {
+        query = query.bind(i);
+    }
+    let rows = query.fetch_all(client).await?;
+
+    let out: Vec<User> = rows.iter().map(|row| row.into()).collect();
+
+    return Ok(out);
+}

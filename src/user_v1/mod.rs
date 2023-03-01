@@ -16,4 +16,5 @@ pub use update_user::*;
 pub mod get_me;
 pub use get_me::*;
 
-mod user_types;
+pub mod user_types;
+pub use user_types::*;
