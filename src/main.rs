@@ -21,8 +21,8 @@ use opentelemetry::sdk::{
     trace::{self, Sampler},
     Resource,
 };
-use opentelemetry::trace::{Span, Status, Tracer};
-use opentelemetry::{global, KeyValue};
+use opentelemetry::trace::{get_active_span, Status, Tracer};
+use opentelemetry::{global, Key, KeyValue, Value};
 use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, get_review_pic, remove_review_pic};
 use ping_routes::ping;
@@ -108,33 +108,61 @@ async fn main() -> std::io::Result<()> {
             .wrap_fn(|req, srv| {
                 // Exception logging middleware
                 let uri = req.uri().clone();
-                srv.call(req).map(move |res| {
-                    if let Ok(result) = res {
-                        if result.response().status().is_client_error() {
-                            let tracer = global::tracer("exception");
-                            let mut span = tracer.start("client error");
-                            span.set_status(Status::error(format!(
-                                "HTTP {} {}",
-                                result.response().status().as_u16(),
-                                uri
-                            )));
-                        }
 
-                        if result.response().status().is_server_error() {
-                            let tracer = global::tracer("exception");
-                            let mut span = tracer.start("server error");
-                            span.set_status(Status::error(format!(
-                                "HTTP {} {}",
-                                result.response().status().as_u16(),
-                                uri
-                            )));
-                        }
+                let tracer = global::tracer("HTTP REQUEST");
+                tracer.in_span("SERVER SIDE", |_cx| {
+                    srv.call(req).map(move |res| match res {
+                        Ok(result) => {
+                            get_active_span(|span| {
+                                span.set_attribute(KeyValue {
+                                    key: Key::from_static_str("URI"),
+                                    value: Value::String(uri.to_string().into()),
+                                });
 
-                        return Ok(result);
-                    } else {
-                        return res;
-                    }
+                                if result.response().status().is_success() {
+                                    span.set_status(Status::Ok);
+                                } else {
+                                    span.set_status(Status::error(format!(
+                                        "HTTP STATUS CODE {}",
+                                        result.response().status().as_u16()
+                                    )));
+                                }
+                            });
+                            return Ok(result);
+                        }
+                        Err(_) => {
+                            return res;
+                        }
+                    })
                 })
+
+                // srv.call(req).map(move |res| {
+                //     if let Ok(result) = res {
+                //         if result.response().status().is_client_error() {
+                //             let tracer = global::tracer("exception");
+                //             let mut span = tracer.start("client error");
+                //             span.set_status(Status::error(format!(
+                //                 "HTTP {} {}",
+                //                 result.response().status().as_u16(),
+                //                 uri
+                //             )));
+                //         }
+
+                //         if result.response().status().is_server_error() {
+                //             let tracer = global::tracer("exception");
+                //             let mut span = tracer.start("server error");
+                //             span.set_status(Status::error(format!(
+                //                 "HTTP {} {}",
+                //                 result.response().status().as_u16(),
+                //                 uri
+                //             )));
+                //         }
+
+                //         return Ok(result);
+                //     } else {
+                //         return res;
+                //     }
+                // })
             })
             .service(web::scope("/ping").service(ping))
             .service(
