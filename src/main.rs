@@ -1,8 +1,8 @@
-use actix_web::dev::Service;
 use actix_web::{
     web::{self, Data, PayloadConfig},
     App, HttpServer,
 };
+use actix_web_opentelemetry::RequestTracing;
 use auth::*;
 use authorization::Authentication;
 use chrono::Utc;
@@ -11,18 +11,18 @@ use friend_v1::{
     get_friends, get_ignored_friends, get_incoming_friends, get_outgoing_friends, ignore_friend,
     remove_friend,
 };
-use futures_util::FutureExt;
 use images::create_s3_client;
 use jwt::{encode_apn_jwt_secret, encode_jwt_secret, mint_apn_jwt, APNSigningKey, SigningKeys};
 use likes_v1::{get_current_likes, get_likes, like_review, unlike_review};
 use notifications_v1::{confirm_notifications, get_notifications, APNClient};
-use opentelemetry::sdk::{
-    export::trace::stdout,
-    trace::{self, Sampler},
-    Resource,
+use opentelemetry::{
+    sdk::{
+        export::trace::stdout,
+        trace::{self, Sampler},
+        Resource,
+    },
+    KeyValue,
 };
-use opentelemetry::trace::{get_active_span, Status, Tracer};
-use opentelemetry::{global, Key, KeyValue, Value};
 use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, get_review_pic, remove_review_pic};
 use ping_routes::ping;
@@ -105,58 +105,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(apn_client.clone())
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
             .wrap(Authentication)
-            .wrap_fn(|req, srv| {
-                let tracer = global::tracer("HTTP REQUEST");
-                let path = req.uri().path().to_string();
-                tracer.in_span(path, |_cx| {
-                    srv.call(req).map(move |res| match res {
-                        Ok(result) => {
-                            get_active_span(|span| {
-                                if result.response().status().is_success() {
-                                    span.set_status(Status::Ok);
-                                } else {
-                                    span.set_status(Status::error(format!(
-                                        "HTTP STATUS CODE {}",
-                                        result.response().status().as_u16()
-                                    )));
-                                }
-                            });
-                            return Ok(result);
-                        }
-                        Err(_) => {
-                            return res;
-                        }
-                    })
-                })
-
-                // srv.call(req).map(move |res| {
-                //     if let Ok(result) = res {
-                //         if result.response().status().is_client_error() {
-                //             let tracer = global::tracer("exception");
-                //             let mut span = tracer.start("client error");
-                //             span.set_status(Status::error(format!(
-                //                 "HTTP {} {}",
-                //                 result.response().status().as_u16(),
-                //                 uri
-                //             )));
-                //         }
-
-                //         if result.response().status().is_server_error() {
-                //             let tracer = global::tracer("exception");
-                //             let mut span = tracer.start("server error");
-                //             span.set_status(Status::error(format!(
-                //                 "HTTP {} {}",
-                //                 result.response().status().as_u16(),
-                //                 uri
-                //             )));
-                //         }
-
-                //         return Ok(result);
-                //     } else {
-                //         return res;
-                //     }
-                // })
-            })
+            .wrap(RequestTracing::new())
             .service(web::scope("/ping").service(ping))
             .service(
                 web::scope("/auth")
