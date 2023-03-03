@@ -106,19 +106,12 @@ async fn main() -> std::io::Result<()> {
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
             .wrap(Authentication)
             .wrap_fn(|req, srv| {
-                // Exception logging middleware
-                let uri = req.uri().clone();
-
                 let tracer = global::tracer("HTTP REQUEST");
-                tracer.in_span("SERVER SIDE", |_cx| {
+                let path = req.uri().path().to_string();
+                tracer.in_span(path, |_cx| {
                     srv.call(req).map(move |res| match res {
                         Ok(result) => {
                             get_active_span(|span| {
-                                span.set_attribute(KeyValue {
-                                    key: Key::from_static_str("URI"),
-                                    value: Value::String(uri.to_string().into()),
-                                });
-
                                 if result.response().status().is_success() {
                                     span.set_status(Status::Ok);
                                 } else {
