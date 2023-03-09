@@ -1,7 +1,12 @@
+use std::sync::Mutex;
+
 use crate::{
     authorization::AuthenticatedUser,
     db::{create_like, create_notification, get_review, get_user, is_already_liked, Review},
-    notifications_v1::{APNClient, ActionType},
+    notifications_v1::{
+        enqueue_notification, ActionType, NotificationQueue, NotificationQueueItem,
+        NotificationType,
+    },
 };
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
@@ -22,7 +27,7 @@ pub struct LikeReviewRequest {
 pub async fn like_review(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    apn_client: Data<APNClient>,
+    apn_queue: Data<Mutex<NotificationQueue>>,
     like_review_request: Query<LikeReviewRequest>,
 ) -> Result<impl Responder> {
     let review_res = get_review(&pool, &authenticated_user.0, &like_review_request.review_id).await;
@@ -75,25 +80,28 @@ pub async fn like_review(
             match user_res {
                 Ok(user_opt) => {
                     if let Some(user) = user_opt {
-                        if let Some(device_token) = user.device_token {
-                            let calling_user_res = get_user(&pool, &authenticated_user.0).await;
+                        let calling_user_res = get_user(&pool, &authenticated_user.0).await;
 
-                            match calling_user_res {
-                                Ok(calling_user_opt) => {
-                                    if let Some(calling_user) = calling_user_opt {
-                                        let _ = apn_client
-                                            .send_notification(
-                                                &device_token,
-                                                &format!(
-                                                    "{} added your review to their favorites",
+                        match calling_user_res {
+                            Ok(calling_user_opt) => {
+                                if let Some(calling_user) = calling_user_opt {
+                                    if calling_user.id != user.id {
+                                        enqueue_notification(
+                                            NotificationQueueItem {
+                                                user_id: user.id.to_string(),
+                                                review_id: Some(review.id.to_string()),
+                                                message: format!(
+                                                    "{} added your review to their favorites!",
                                                     calling_user.display_name
                                                 ),
-                                            )
-                                            .await;
+                                                notification_type: NotificationType::Favorite,
+                                            },
+                                            &apn_queue,
+                                        );
                                     }
                                 }
-                                Err(_) => {}
                             }
+                            Err(_) => {}
                         }
                     }
                 }

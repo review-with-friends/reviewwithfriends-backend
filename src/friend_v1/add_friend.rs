@@ -1,10 +1,14 @@
+use std::sync::Mutex;
+
 use crate::{
     authorization::AuthenticatedUser,
     db::{
         create_friend_request, does_user_exist, get_current_friends, get_outgoing_friend_requests,
         get_user,
     },
-    notifications_v1::APNClient,
+    notifications_v1::{
+        enqueue_notification, NotificationQueue, NotificationQueueItem, NotificationType,
+    },
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -25,7 +29,7 @@ pub struct SendRequest {
 pub async fn add_friend(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    apn_client: Data<APNClient>,
+    apn_queue: Data<Mutex<NotificationQueue>>,
     send_request: Query<SendRequest>,
 ) -> Result<impl Responder> {
     if &authenticated_user.0 == &send_request.friend_id {
@@ -81,26 +85,28 @@ pub async fn add_friend(
                             match user_res {
                                 Ok(user_opt) => {
                                     if let Some(user) = user_opt {
-                                        if let Some(device_token) = user.device_token {
-                                            let calling_user_res =
-                                                get_user(&pool, &authenticated_user.0).await;
+                                        let calling_user_res =
+                                            get_user(&pool, &authenticated_user.0).await;
 
-                                            match calling_user_res {
-                                                Ok(calling_user_opt) => {
-                                                    if let Some(calling_user) = calling_user_opt {
-                                                        let _ = apn_client
-                                                            .send_notification(
-                                                                &device_token,
-                                                                &format!(
-                                                                    "{} wants to be your friend",
-                                                                    calling_user.display_name
-                                                                ),
-                                                            )
-                                                            .await;
-                                                    }
+                                        match calling_user_res {
+                                            Ok(calling_user_opt) => {
+                                                if let Some(calling_user) = calling_user_opt {
+                                                    enqueue_notification(
+                                                        NotificationQueueItem {
+                                                            user_id: user.id.to_string(),
+                                                            review_id: None,
+                                                            message: format!(
+                                                                "{} wants to be your friend!",
+                                                                calling_user.display_name
+                                                            ),
+                                                            notification_type:
+                                                                NotificationType::Add,
+                                                        },
+                                                        &apn_queue,
+                                                    );
                                                 }
-                                                Err(_) => {}
                                             }
+                                            Err(_) => {}
                                         }
                                     }
                                 }
