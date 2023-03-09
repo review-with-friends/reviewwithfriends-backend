@@ -14,7 +14,10 @@ use friend_v1::{
 use images::create_s3_client;
 use jwt::{encode_apn_jwt_secret, encode_jwt_secret, mint_apn_jwt, APNSigningKey, SigningKeys};
 use likes_v1::{get_current_likes, get_likes, like_review, unlike_review};
-use notifications_v1::{confirm_notifications, get_notifications, APNClient};
+use notifications_v1::{
+    confirm_notifications, get_notifications, start_notification_worker, APNClient,
+    NotificationQueue,
+};
 use opentelemetry::{
     sdk::{
         export::trace::stdout,
@@ -96,6 +99,10 @@ async fn main() -> std::io::Result<()> {
 
     setup_tracing(&config);
 
+    let queue = Data::new(Mutex::new(NotificationQueue::new()));
+
+    start_notification_worker(queue.clone(), apn_client.clone(), Data::new(pool.clone()));
+
     HttpServer::new(move || {
         App::new()
             .app_data(Data::new(config.clone()))
@@ -103,6 +110,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(client.clone()))
             .app_data(Data::new(http_client.clone()))
             .app_data(apn_client.clone())
+            .app_data(queue.clone())
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
             .wrap(Authentication)
             .wrap(RequestTracing::new())

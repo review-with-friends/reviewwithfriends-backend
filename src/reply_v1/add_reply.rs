@@ -1,7 +1,12 @@
+use std::sync::Mutex;
+
 use crate::{
     authorization::AuthenticatedUser,
     db::{create_notification, create_reply, get_review, get_user, Review},
-    notifications_v1::{APNClient, ActionType},
+    notifications_v1::{
+        enqueue_notification, ActionType, NotificationQueue, NotificationQueueItem,
+        NotificationType,
+    },
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -24,7 +29,7 @@ pub struct AddReplyRequest {
 pub async fn add_reply(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    apn_client: Data<APNClient>,
+    apn_queue: Data<Mutex<NotificationQueue>>,
     add_reply_request: Json<AddReplyRequest>,
 ) -> Result<impl Responder> {
     if let Err(err) = validate_reply_text(&add_reply_request.text) {
@@ -71,25 +76,28 @@ pub async fn add_reply(
             match user_res {
                 Ok(user_opt) => {
                     if let Some(user) = user_opt {
-                        if let Some(device_token) = user.device_token {
-                            let calling_user_res = get_user(&pool, &authenticated_user.0).await;
+                        let calling_user_res = get_user(&pool, &authenticated_user.0).await;
 
-                            match calling_user_res {
-                                Ok(calling_user_opt) => {
-                                    if let Some(calling_user) = calling_user_opt {
-                                        let _ = apn_client
-                                            .send_notification(
-                                                &device_token,
-                                                &format!(
-                                                    "{} replied to your review",
+                        match calling_user_res {
+                            Ok(calling_user_opt) => {
+                                if let Some(calling_user) = calling_user_opt {
+                                    if calling_user.id != user.id {
+                                        enqueue_notification(
+                                            NotificationQueueItem {
+                                                user_id: user.id.to_string(),
+                                                review_id: Some(review.id.to_string()),
+                                                message: format!(
+                                                    "{} replied to your review!",
                                                     calling_user.display_name
                                                 ),
-                                            )
-                                            .await;
+                                                notification_type: NotificationType::Reply,
+                                            },
+                                            &apn_queue,
+                                        );
                                     }
                                 }
-                                Err(_) => {}
                             }
+                            Err(_) => {}
                         }
                     }
                 }

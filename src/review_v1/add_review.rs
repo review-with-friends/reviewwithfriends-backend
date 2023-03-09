@@ -1,6 +1,14 @@
+use std::sync::Mutex;
+
 use crate::{
     authorization::AuthenticatedUser,
-    db::{create_pic, create_review, remove_review_and_children, remove_review_pic_id, Review},
+    db::{
+        create_pic, create_review, get_current_friends, get_user, remove_review_and_children,
+        remove_review_pic_id, Review,
+    },
+    notifications_v1::{
+        enqueue_notification, NotificationQueue, NotificationQueueItem, NotificationType,
+    },
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -41,6 +49,7 @@ pub async fn add_review(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
     s3_client: Data<S3Client>,
+    apn_queue: Data<Mutex<NotificationQueue>>,
     add_review_request: Json<AddReviewRequest>,
 ) -> Result<impl Responder> {
     if let Err(err) = validate_review_text(&add_review_request.text) {
@@ -89,7 +98,35 @@ pub async fn add_review(
             let pic_upload_res = upload_and_store_pics(s3_client, &pool, &review, pics).await;
 
             match pic_upload_res {
-                Ok(_) => return Ok(HttpResponse::Ok().json(ReviewPub::from(review))),
+                Ok(_) => {
+                    let friends_res = get_current_friends(&pool, &authenticated_user.0).await;
+
+                    if let Ok(friends) = friends_res {
+                        let calling_user_res = get_user(&pool, &authenticated_user.0).await;
+                        if let Ok(calling_user_opt) = calling_user_res {
+                            if let Some(calling_user) = calling_user_opt {
+                                for friend in friends {
+                                    if calling_user.id != friend.friend_id {
+                                        enqueue_notification(
+                                            NotificationQueueItem {
+                                                user_id: friend.friend_id.to_string(),
+                                                review_id: None,
+                                                message: format!(
+                                                    "{} posted a new review!",
+                                                    calling_user.display_name
+                                                ),
+                                                notification_type: NotificationType::Post,
+                                            },
+                                            &apn_queue,
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    return Ok(HttpResponse::Ok().json(ReviewPub::from(review)));
+                }
                 Err(err) => return Err(ErrorInternalServerError(err)),
             }
         }

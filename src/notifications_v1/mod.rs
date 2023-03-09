@@ -9,3 +9,6 @@ pub use confirm_notifications::*;
 
 pub mod apn_client;
 pub use apn_client::*;
+
+pub mod background_worker;
+pub use background_worker::*;
