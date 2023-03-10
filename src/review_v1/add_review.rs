@@ -17,7 +17,7 @@ use actix_web::{
     HttpResponse, Responder, Result,
 };
 use base64::{engine::general_purpose, Engine};
-use chrono::Utc;
+use chrono::{NaiveDateTime, Utc};
 use images::{ByteStream, PutObjectRequest, S3Client, S3};
 use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
@@ -41,6 +41,7 @@ pub struct AddReviewRequest {
     pub latitude: f64,
     pub longitude: f64,
     pub is_custom: bool,
+    pub post_date: Option<i64>,
 }
 
 /// Allows the user to create a review for a specific place.
@@ -242,10 +243,22 @@ async fn upload_and_store_pics(
 }
 
 fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
+    let post_date: NaiveDateTime;
+
+    if let Some(user_post_date) = request.post_date {
+        if let Some(ndt) = NaiveDateTime::from_timestamp_millis(user_post_date) {
+            post_date = ndt;
+        } else {
+            post_date = Utc::now().naive_utc();
+        }
+    } else {
+        post_date = Utc::now().naive_utc();
+    }
+
     Review {
         id: Uuid::new_v4().to_string(),
         user_id: user_id.to_string(),
-        created: Utc::now().naive_utc(),
+        created: post_date,
         pic_id: None,
         category: request.category.clone(),
         text: request.text.clone(),
