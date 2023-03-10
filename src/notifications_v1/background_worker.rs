@@ -2,6 +2,8 @@ use crate::db::get_user;
 
 use super::APNClient;
 use actix_web::web::Data;
+use opentelemetry::global;
+use opentelemetry::trace::{Span, Status, Tracer};
 use sqlx::MySqlPool;
 use std::collections::VecDeque;
 use std::ops::{Deref, DerefMut};
@@ -74,13 +76,21 @@ pub fn start_notification_worker(
             }
 
             if let Some(item) = dequeued_item {
+                let tracer = global::tracer("Apple Push Notification");
+                let mut span = tracer.start("Notification Sent");
+
                 if let Ok(user_opt) = get_user(&pool, &item.user_id).await {
                     if let Some(user) = user_opt {
                         if let Some(device_token) = user.device_token {
-                            let _ = client.send_notification(&device_token, &item.message).await;
+                            let res = client.send_notification(&device_token, &item.message).await;
+                            if let Err(err) = res {
+                                span.set_status(Status::error(err.clone()));
+                            }
                         }
                     }
                 }
+
+                span.end();
             }
 
             time::sleep(Duration::from_millis(100)).await;

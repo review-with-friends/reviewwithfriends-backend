@@ -107,6 +107,7 @@ pub async fn add_review(
                             if let Some(calling_user) = calling_user_opt {
                                 for friend in friends {
                                     if calling_user.id != friend.friend_id {
+                                        println!("enqueued notification");
                                         enqueue_notification(
                                             NotificationQueueItem {
                                                 user_id: friend.friend_id.to_string(),

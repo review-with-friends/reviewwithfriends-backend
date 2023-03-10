@@ -76,11 +76,25 @@ impl APNClient {
             .await;
 
         match result {
-            Ok(_) => {
-                return Ok(());
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    return Ok(());
+                } else {
+                    let mut text = "".to_string();
+                    let status_code = resp.status();
+
+                    if let Ok(text_tmp) = resp.text().await {
+                        text = text_tmp.to_string();
+                    }
+
+                    let error_text =
+                        format!("APN FAILED WITH STATUS {} AND BODY {}", status_code, text);
+
+                    return Err(error_text);
+                }
             }
-            Err(_) => {
-                return Ok(());
+            Err(err) => {
+                return Err(err.to_string());
             }
         }
     }
