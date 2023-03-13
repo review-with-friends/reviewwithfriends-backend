@@ -6,6 +6,7 @@ use opentelemetry::global;
 use opentelemetry::trace::{Span, Status, Tracer};
 use sqlx::MySqlPool;
 use std::collections::VecDeque;
+use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::{sync::Mutex, time::Duration};
 use tokio::{task, time};
@@ -61,6 +62,17 @@ pub enum NotificationType {
     Post,
 }
 
+impl fmt::Display for NotificationType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            NotificationType::Favorite => write!(f, "Favorite"),
+            NotificationType::Reply => write!(f, "Reply"),
+            NotificationType::Add => write!(f, "Add"),
+            NotificationType::Post => write!(f, "Post"),
+        }
+    }
+}
+
 /// Starts a background task to process the queue
 pub fn start_notification_worker(
     queue: Data<Mutex<NotificationQueue>>,
@@ -82,7 +94,14 @@ pub fn start_notification_worker(
                 if let Ok(user_opt) = get_user(&pool, &item.user_id).await {
                     if let Some(user) = user_opt {
                         if let Some(device_token) = user.device_token {
-                            let res = client.send_notification(&device_token, &item.message).await;
+                            let res = client
+                                .send_notification(
+                                    &device_token,
+                                    &item.message,
+                                    item.notification_type,
+                                    item.review_id,
+                                )
+                                .await;
                             if let Err(err) = res {
                                 span.set_status(Status::error(err.clone()));
                             }

@@ -4,6 +4,8 @@ use reqwest::Client;
 use serde::Serialize;
 use std::sync::Mutex;
 
+use super::NotificationType;
+
 /// Client use to communicate with Apple Push-Notification Network.
 pub struct APNClient {
     pub client: Client,
@@ -17,7 +19,13 @@ impl APNClient {
         mint_apn_jwt(key)
     }
 
-    pub async fn send_notification(&self, device_token: &str, message: &str) -> Result<(), String> {
+    pub async fn send_notification(
+        &self,
+        device_token: &str,
+        message: &str,
+        notification_type: NotificationType,
+        notification_content: Option<String>,
+    ) -> Result<(), String> {
         let token: String;
 
         {
@@ -47,6 +55,8 @@ impl APNClient {
         let pn = PushNotification {
             aps: Alert {
                 alert: message.to_string(),
+                notification_type: notification_type.to_string(),
+                notification_value: notification_content.unwrap_or_default(),
             },
         };
 
@@ -62,7 +72,7 @@ impl APNClient {
         let result = self
             .client
             .post(format!(
-                "https://api.push.apple.com/3/device/{}",
+                "https://api.sandbox.push.apple.com/3/device/{}",
                 device_token
             ))
             .header("authorization", format!("bearer {}", &token))
@@ -108,4 +118,6 @@ struct PushNotification {
 #[derive(Serialize)]
 struct Alert {
     pub alert: String,
+    pub notification_type: String,
+    pub notification_value: String,
 }
