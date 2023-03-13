@@ -11,6 +11,7 @@ pub struct UserPub {
     pub display_name: String,
     pub created: i64,
     pub pic_id: String,
+    pub recovery: bool,
 }
 
 impl From<User> for UserPub {
@@ -21,6 +22,7 @@ impl From<User> for UserPub {
             display_name: user.display_name,
             created: user.created.timestamp_millis(),
             pic_id: user.pic_id,
+            recovery: user.email.is_some(),
         }
     }
 }

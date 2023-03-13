@@ -22,6 +22,8 @@ use sqlx::MySqlPool;
 use uuid::Uuid;
 use validation;
 
+use super::get_new_auth_code;
+
 #[derive(Deserialize)]
 pub struct RequestCodeRequest {
     phone: String,
@@ -75,6 +77,7 @@ pub async fn request_code(
                     created: Utc::now().naive_utc(),
                     pic_id: "default".to_string(),
                     device_token: None,
+                    email: None,
                 };
 
                 let create_res = create_user(&pool, &existing_user).await;
@@ -178,20 +181,4 @@ fn get_new_user_name() -> String {
     }
 
     return user_name;
-}
-
-/// Generates a new 9 digit auth code authenticated via phone.
-/// I believe this generation is OK. The endpoint for validating
-/// the code restricts the code to a limited lifetime and we limit
-/// the amount of code attempts.
-fn get_new_auth_code() -> String {
-    let mut rng = rand::thread_rng();
-    let mut code = String::from("");
-
-    for _ in 0..9 {
-        let num = rng.gen_range(0..9);
-        code.push_str(&num.to_string());
-    }
-
-    return code;
 }

@@ -2,6 +2,7 @@ use std::io::Cursor;
 
 use base64::engine::general_purpose;
 use jpeg_decoder::Decoder;
+use validator::Validate;
 
 /// All issued codes are exactly 9 in length and contain
 /// no non-ascii characters.
@@ -55,6 +56,29 @@ pub fn validate_phone(phone: &str) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+/// We expect emails formatted like: "support@spacedoglabs.com"
+///
+/// ```
+/// assert!(validation::validate_email("").is_err());
+/// assert!(validation::validate_email("support@spacedoglabs.com").is_ok());
+/// ```
+pub fn validate_email(email: &str) -> Result<(), String> {
+    let email_validator = EmailValidator {
+        email: email.to_string(),
+    };
+
+    match email_validator.validate() {
+        Ok(_) => Ok(()),
+        Err(_) => Err("invalid email".to_string()),
+    }
+}
+
+#[derive(Validate)]
+struct EmailValidator {
+    #[validate(email)]
+    email: String,
 }
 
 /// Validates the profile pic and returns the size.
