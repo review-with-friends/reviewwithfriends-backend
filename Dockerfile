@@ -7,8 +7,9 @@ ARG SPACES_KEY
 ARG SPACES_SECRET
 ARG NR_KEY
 ARG APN_KEY
+ARG SENDGRID_KEY
 
-WORKDIR /spotster
+WORKDIR /belocal
 
 ENV JWT_KEY=$JWT_KEY
 ENV TWILIO=$TWILIO
@@ -17,14 +18,15 @@ ENV SPACES_KEY=$SPACES_KEY
 ENV SPACES_SECRET=$SPACES_SECRET
 ENV NR_KEY=$NR_KEY
 ENV APN_KEY=$APN_KEY
+ENV SENDGRID_KEY=$SENDGRID_KEY
 
 RUN apt-get update
 RUN apt-get install ca-certificates -y
 RUN update-ca-certificates
 
 # Copy our build
-COPY ./target/release/spotster-backend ./
+COPY ./target/release/belocal-backend ./
 
-CMD ["/spotster/spotster-backend"]
+CMD ["/belocal/belocal-backend"]
 
 EXPOSE 80

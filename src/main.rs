@@ -39,7 +39,10 @@ use review_v1::{
 use sqlx::MySqlPool;
 use std::sync::Mutex;
 use std::{collections::HashMap, env, time::Duration};
-use user_v1::{get_me, get_user_by_id, get_user_by_name, search_user_by_name, update_user};
+use user_v1::{
+    get_me, get_user_by_id, get_user_by_name, search_user_by_name, update_user,
+    update_user_recovery_email,
+};
 
 use crate::user_v1::update_user_device_token;
 
@@ -65,6 +68,7 @@ pub struct Config {
     spaces_secret: String,
     newrelic_key: String,
     apn_key: APNSigningKey,
+    sendgrid_key: String,
 }
 
 const PIC_CONFIG_LIMIT: usize = 4_262_144;
@@ -119,7 +123,9 @@ async fn main() -> std::io::Result<()> {
                 web::scope("/auth")
                     .service(request_code)
                     .service(sign_in)
-                    .service(sign_in_demo),
+                    .service(sign_in_demo)
+                    .service(recovery_code)
+                    .service(update_phone),
             )
             .service(
                 web::scope("/api").service(
@@ -167,7 +173,8 @@ async fn main() -> std::io::Result<()> {
                                 .service(get_user_by_name)
                                 .service(update_user)
                                 .service(get_me)
-                                .service(update_user_device_token),
+                                .service(update_user_device_token)
+                                .service(update_user_recovery_email),
                         )
                         .service(
                             web::scope("/like")
@@ -202,12 +209,13 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:55167/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:50239/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),
             newrelic_key: String::from("Default"),
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
+            sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
         },
         Err(_) => Config {
             twilio_key: env::var("TWILIO").unwrap(),
@@ -217,6 +225,7 @@ fn build_config() -> Config {
             spaces_secret: env::var("SPACES_SECRET").unwrap(),
             newrelic_key: env::var("NR_KEY").unwrap(),
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
+            sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
         },
     }
 }

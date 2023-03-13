@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 jpeg-decoder = "0.3.0"
 base64 = "0.21.0"
+validator = { version = "0.16", features = ["derive"] }

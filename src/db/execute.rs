@@ -79,6 +79,21 @@ pub async fn create_authattempt(client: &MySqlPool, phone: &str) -> Result<(), E
     return Ok(());
 }
 
+/// Sets a phone for a given user account.
+pub async fn update_user_phone(
+    client: &MySqlPool,
+    user_id: &str,
+    phone: &str,
+) -> Result<(), Error> {
+    sqlx::query("UPDATE user SET phone = ? WHERE id = ?")
+        .bind(phone)
+        .bind(user_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
 /// Creates a friend request as a user to another user.
 /// ## Sets the `friendrequest.created` to `Utc::now().naive_utc()`
 /// ## Sets the `friendrequest.id` to `Uuid::new_v4().to_string()`
@@ -481,6 +496,21 @@ pub async fn update_device_token(
 ) -> Result<(), Error> {
     sqlx::query("UPDATE user SET device_token = ? WHERE id = ?")
         .bind(device_token)
+        .bind(user_id)
+        .execute(client)
+        .await?;
+
+    return Ok(());
+}
+
+/// Updates a users recovery for updating account phone numbers.
+pub async fn update_recovery_email(
+    client: &MySqlPool,
+    user_id: &str,
+    email: &str,
+) -> Result<(), Error> {
+    sqlx::query("UPDATE user SET email = ? WHERE id = ?")
+        .bind(email)
         .bind(user_id)
         .execute(client)
         .await?;

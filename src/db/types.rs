@@ -22,6 +22,9 @@ pub struct User {
     pub pic_id: String,
 
     pub device_token: Option<String>,
+
+    /// Optional recovery email to be set by the user.
+    pub email: Option<String>,
 }
 
 impl From<&MySqlRow> for User {
@@ -34,6 +37,7 @@ impl From<&MySqlRow> for User {
             created: row.get("created"),
             pic_id: row.get("pic_id"),
             device_token: row.get("device_token"),
+            email: row.get("email"),
         }
     }
 }

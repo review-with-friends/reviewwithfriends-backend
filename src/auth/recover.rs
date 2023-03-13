@@ -1,7 +1,5 @@
-use std::collections::HashMap;
-
 use crate::{
-    db::{create_phoneauth, create_user, get_current_phoneauths, get_user_by_phone, User},
+    db::{create_phoneauth, get_current_phoneauths, get_user_by_phone, User},
     Config,
 };
 use actix_web::{
@@ -10,16 +8,13 @@ use actix_web::{
     web::{Data, Query},
     HttpResponse, Result,
 };
-use chrono::Utc;
 use opentelemetry::{
     global,
     trace::{Span, Status, Tracer},
 };
-use rand::Rng;
 use reqwest::{Client, StatusCode};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::MySqlPool;
-use uuid::Uuid;
 use validation;
 
 use super::get_new_auth_code;
@@ -36,8 +31,8 @@ pub struct RequestCodeRequest {
 ///
 /// We may want to add IP limits here as well. SMS is expensive
 /// when abused, and can be annoying for targets of said abuse.
-#[post("/requestcode")]
-pub async fn request_code(
+#[post("/recovery_code")]
+pub async fn recovery_code(
     pool: Data<MySqlPool>,
     config: Data<Config>,
     http_client: Data<Client>,
@@ -68,32 +63,22 @@ pub async fn request_code(
             if let Some(user) = user_opt {
                 existing_user = user;
             } else {
-                let new_username = get_new_user_name();
-                existing_user = User {
-                    id: Uuid::new_v4().to_string(),
-                    name: new_username.clone(),
-                    display_name: new_username.clone(),
-                    phone: request_code_request.phone.to_string(),
-                    created: Utc::now().naive_utc(),
-                    pic_id: "default".to_string(),
-                    device_token: None,
-                    email: None,
-                };
-
-                let create_res = create_user(&pool, &existing_user).await;
-
-                match create_res {
-                    Ok(_) => {}
-                    Err(_) => {
-                        return Err(ErrorInternalServerError("error creating user"));
-                    }
-                }
+                return Err(ErrorBadRequest("user doesn't exist"));
             }
         }
         Err(_) => {
             return Err(ErrorInternalServerError("error fetching user"));
         }
     };
+
+    let existing_email: String;
+    if let Some(email) = existing_user.email {
+        existing_email = email;
+    } else {
+        return Err(ErrorBadRequest(
+            "recovery email not setup, please contact support.",
+        ));
+    }
 
     let auth_code = get_new_auth_code();
     let phoneauth_res = create_phoneauth(&pool, &existing_user.phone, &auth_code).await;
@@ -106,12 +91,12 @@ pub async fn request_code(
     }
 
     let tracer = global::tracer("exception");
-    let mut span = tracer.start("phone auth failure");
+    let mut span = tracer.start("email auth failure");
 
-    let auth_res = send_auth(
+    let auth_res = send_auth_email(
         &http_client,
-        &config.twilio_key,
-        &existing_user.phone,
+        &config.sendgrid_key,
+        &existing_email,
         &auth_code,
     )
     .await;
@@ -123,62 +108,95 @@ pub async fn request_code(
         }
         Err(err) => {
             span.set_status(Status::error(err.clone()));
+            span.end();
             return Ok(HttpResponse::InternalServerError().body("failed to send auth request"));
         }
     }
 }
 
-/// Sends a text with the generated auth code to the users phone.
-async fn send_auth(
+/// Sends an email with the generated auth code to the users phone.
+async fn send_auth_email(
     client: &Client,
-    twilio_secret: &String,
-    phone: &str,
+    secret: &String,
+    email: &str,
     code: &str,
 ) -> Result<(), String> {
-    const REQUEST_URL: &str = "https://api.twilio.com/2010-04-01/Accounts/AC0094c61aa39fc9c673130f6e28e43bad/Messages.json";
+    const REQUEST_URL: &str = "https://api.sendgrid.com/v3/mail/send";
 
-    let mut params = HashMap::new();
-    params.insert(
-        "Body",
-        format!(
-            "Welcome to Spotster! Here is your verification code: {} ",
-            code
-        ),
-    );
-    params.insert("From", "+17246134841".to_string());
-    params.insert("To", format!("+{}", phone));
+    let email_obj = SendGridEmail {
+        from: SendGridRecipient {
+            name: "BeLocal Auth".to_string(),
+            email: "auth@em9516.spacedoglabs.com".to_string(),
+        },
+        subject: "BeLocal Account Recovery Code".to_string(),
+        content: vec![SendGridContentItem {
+            content_type: "text/html".to_string(),
+            value: format!(
+                "<p>Here is your BeLocal account recovery code: {}</p>",
+                code
+            ),
+        }],
+        personalizations: vec![SendGridPersonalizations {
+            to: vec![SendGridRecipient {
+                name: "".to_string(),
+                email: email.to_string(),
+            }],
+        }],
+    };
+
+    let body: String;
+
+    if let Ok(body_ok) = serde_json::to_string(&email_obj) {
+        body = body_ok;
+    } else {
+        return Err("failed to create email body".to_string());
+    }
 
     let response_res = client
         .post(REQUEST_URL)
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .form(&params)
-        .basic_auth("AC0094c61aa39fc9c673130f6e28e43bad", Some(twilio_secret))
+        .header("Content-Type", "application/json")
+        .header("authorization", format!("bearer {}", &secret))
+        .body(body)
         .send()
         .await;
 
     match response_res {
         Ok(response) => match response.status() {
-            StatusCode::CREATED => Ok(()),
-            _ => Err(format!(
-                "{} {}",
-                "twilio send finished with unexpected status:".to_string(),
-                response.status()
-            )),
+            StatusCode::ACCEPTED => Ok(()),
+            _ => {
+                println!("{}", response.text().await.unwrap());
+                return Err(format!(
+                    "{}",
+                    "sendgrid email send finished with unexpected status:".to_string()
+                ));
+            }
         },
         Err(err) => Err(err.to_string()),
     }
 }
 
-/// Gets a name for a new user to default to.
-/// The user is expected to be able to set this to anything not already taken.
-fn get_new_user_name() -> String {
-    let mut rng = rand::thread_rng();
-    let mut user_name = String::from("newuser");
+#[derive(Serialize)]
+struct SendGridEmail {
+    pub from: SendGridRecipient,
+    pub subject: String,
+    pub content: Vec<SendGridContentItem>,
+    pub personalizations: Vec<SendGridPersonalizations>,
+}
 
-    for _ in 0..9 {
-        let num = rng.gen_range(0..9);
-        user_name.push_str(&num.to_string());
-    }
+#[derive(Serialize)]
+struct SendGridRecipient {
+    pub name: String,
+    pub email: String,
+}
 
-    return user_name;
+#[derive(Serialize)]
+struct SendGridPersonalizations {
+    pub to: Vec<SendGridRecipient>,
+}
+
+#[derive(Serialize)]
+struct SendGridContentItem {
+    #[serde(rename = "type")]
+    pub content_type: String,
+    pub value: String,
 }
