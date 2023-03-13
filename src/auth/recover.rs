@@ -24,13 +24,8 @@ pub struct RequestCodeRequest {
     phone: String,
 }
 
-/// Endpoint for requesting an auth code.
-/// The auth code is sent to the request phone number.
-/// We track when we send a code, and try to prevent abuse
-/// limiting the frequency on a phone by phone basis
-///
-/// We may want to add IP limits here as well. SMS is expensive
-/// when abused, and can be annoying for targets of said abuse.
+/// Endpoint for requesting an auth code for recovery.
+/// The auth code is sent to the accounts email.
 #[post("/recovery_code")]
 pub async fn recovery_code(
     pool: Data<MySqlPool>,
