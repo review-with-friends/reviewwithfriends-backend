@@ -22,8 +22,10 @@ pub struct SignInRequest {
     phone: String,
     /// New Account Phone Number.
     new_phone: String,
-    /// Code to give you access to swap numbers.
+    /// Code from the recovery email.
     code: String,
+    /// Code from the SMS to the new phone.
+    new_phone_code: String,
 }
 
 /// Returns the user JWT for future requests.
@@ -56,6 +58,11 @@ pub async fn update_phone(
         return Err(ErrorBadRequest(code_err.to_string()));
     }
 
+    let new_phone_valid_code = validation::validate_code(&sign_in_request.new_phone_code);
+    if let Err(code_err) = new_phone_valid_code {
+        return Err(ErrorBadRequest(code_err.to_string()));
+    }
+
     let create_authattempt_res = create_authattempt(&pool, &sign_in_request.phone).await;
     if let Err(_) = create_authattempt_res {
         return Err(ErrorInternalServerError("unable to start auth attempt"));
@@ -63,6 +70,23 @@ pub async fn update_phone(
 
     let phone_auth_attemps_res = get_phoneauth_attempts(&pool, &sign_in_request.phone).await;
     if let Ok(phone_auth_attempts) = phone_auth_attemps_res {
+        if phone_auth_attempts.len() >= 4 {
+            return Err(ErrorBadRequest(
+                "too many auth attempts - wait a bit before trying again",
+            ));
+        }
+    } else {
+        return Err(ErrorInternalServerError("unable to get auth attempts"));
+    }
+
+    let create_authattempt_res = create_authattempt(&pool, &sign_in_request.new_phone).await;
+    if let Err(_) = create_authattempt_res {
+        return Err(ErrorInternalServerError("unable to start auth attempt"));
+    }
+
+    let new_phone_auth_attemps_res =
+        get_phoneauth_attempts(&pool, &sign_in_request.new_phone).await;
+    if let Ok(phone_auth_attempts) = new_phone_auth_attemps_res {
         if phone_auth_attempts.len() >= 4 {
             return Err(ErrorBadRequest(
                 "too many auth attempts - wait a bit before trying again",
@@ -86,6 +110,24 @@ pub async fn update_phone(
         .collect::<Vec<&PhoneAuth>>();
 
     if matched_phoneauth.len() == 1 {
+        // Validate a phone auth code for the new phone number is received.
+        let new_phone_auth_res = get_current_phoneauths(&pool, &sign_in_request.new_phone).await;
+        let new_phone_auths: Vec<PhoneAuth>;
+        if let Ok(new_phone_auths_tmp) = new_phone_auth_res {
+            new_phone_auths = new_phone_auths_tmp;
+        } else {
+            return Err(ErrorInternalServerError("unable to get current phoneauths"));
+        }
+
+        let matched_new_phoneauth = new_phone_auths
+            .iter()
+            .filter(|ar| ar.code == sign_in_request.new_phone_code)
+            .collect::<Vec<&PhoneAuth>>();
+
+        if matched_new_phoneauth.len() != 1 {
+            return Err(ErrorInternalServerError("invalid code"));
+        }
+
         let old_user: User;
         let user_res = get_user_by_phone(&pool, &sign_in_request.phone).await;
         if let Ok(user_opt) = user_res {
