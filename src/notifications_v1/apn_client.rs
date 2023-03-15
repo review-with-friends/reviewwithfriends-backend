@@ -72,7 +72,7 @@ impl APNClient {
         let result = self
             .client
             .post(format!(
-                "https://api.sandbox.push.apple.com/3/device/{}",
+                "https://api.push.apple.com/3/device/{}",
                 device_token
             ))
             .header("authorization", format!("bearer {}", &token))
