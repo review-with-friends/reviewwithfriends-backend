@@ -112,7 +112,7 @@ pub async fn add_review(
                                         enqueue_notification(
                                             NotificationQueueItem {
                                                 user_id: friend.friend_id.to_string(),
-                                                review_id: None,
+                                                review_id: Some(review.id.to_string()),
                                                 message: format!(
                                                     "{} posted a new review!",
                                                     calling_user.display_name
