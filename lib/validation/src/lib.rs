@@ -248,19 +248,17 @@ pub fn validate_name(text: &str) -> Result<(), String> {
 /// assert!(validation::validate_display_name("Test :D").is_ok());
 /// assert!(validation::validate_display_name("TES💜T").is_ok());
 /// assert!(validation::validate_display_name("TES💜T  2321").is_ok());
-/// assert!(validation::validate_display_name("TES").is_err());
+/// assert!(validation::validate_display_name("TES").is_ok());
 /// assert!(validation::validate_display_name("💜").is_err());
 /// assert!(validation::validate_display_name(&"💜".repeat(27)).is_err());
 /// ```
 pub fn validate_display_name(text: &str) -> Result<(), String> {
     if text.chars().count() > 26 {
-        return Err(
-            "display name too long - max 26 chars (emojis count for 2-4 chars)".to_string(),
-        );
+        return Err("display name too long - max 26 chars".to_string());
     }
 
-    if text.chars().count() < 4 {
-        return Err("display name too short - min 4 chars".to_string());
+    if text.chars().count() < 3 {
+        return Err("display name too short - min 3 chars".to_string());
     }
 
     return Ok(());
