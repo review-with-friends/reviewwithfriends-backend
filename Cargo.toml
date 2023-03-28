@@ -1,5 +1,5 @@
 [package]
-name = "belocal-backend"
+name = "reviewwithfriends-backend"
 version = "0.1.4-beta"
 edition = "2021"
 

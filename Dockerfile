@@ -9,7 +9,7 @@ ARG NR_KEY
 ARG APN_KEY
 ARG SENDGRID_KEY
 
-WORKDIR /belocal
+WORKDIR /app
 
 ENV JWT_KEY=$JWT_KEY
 ENV TWILIO=$TWILIO
@@ -25,8 +25,8 @@ RUN apt-get install ca-certificates -y
 RUN update-ca-certificates
 
 # Copy our build
-COPY ./target/release/belocal-backend ./
+COPY ./target/release/reviewwithfriends-backend ./
 
-CMD ["/belocal/belocal-backend"]
+CMD ["/app/reviewwithfriends-backend"]
 
 EXPOSE 80
