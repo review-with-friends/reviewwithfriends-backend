@@ -141,7 +141,7 @@ async fn send_auth(
     params.insert(
         "Body",
         format!(
-            "Welcome to BeLocal! Here is your verification code: {} ",
+            "Welcome to Review with friends! Here is your verification code: {} ",
             code
         ),
     );

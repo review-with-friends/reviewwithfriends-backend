@@ -57,7 +57,7 @@ jobs:
           then
             docker push registry.digitalocean.com/spacedoglabs/backends:belocal-${{steps.crate-version.outputs.version}}
           else
-            echo "Skipped Building an Image. Image was found."  
+            echo "Skipped Building an Image. Image was found."
           fi
 
       - name: Set up kubectl
