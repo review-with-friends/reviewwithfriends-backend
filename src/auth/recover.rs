@@ -123,11 +123,11 @@ async fn send_auth_email(
             name: "BeLocal Auth".to_string(),
             email: "auth@em9516.spacedoglabs.com".to_string(),
         },
-        subject: "BeLocal Account Recovery Code".to_string(),
+        subject: "Review With Friends: Account Recovery Code".to_string(),
         content: vec![SendGridContentItem {
             content_type: "text/html".to_string(),
             value: format!(
-                "<p>Here is your BeLocal account recovery code: {}</p>",
+                "<p>Here is your Review with friends account recovery code: {}</p>",
                 code
             ),
         }],
