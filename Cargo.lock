@@ -2089,7 +2089,7 @@ dependencies = [
 
 [[package]]
 name = "reviewwithfriends-backend"
-version = "0.1.4-beta"
+version = "0.1.5-beta"
 dependencies = [
  "actix-rt",
  "actix-web",

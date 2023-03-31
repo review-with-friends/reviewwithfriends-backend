@@ -30,6 +30,7 @@ use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, get_review_pic, remove_review_pic};
 use ping_routes::ping;
 use reply_v1::{add_reply, get_replies, remove_reply};
+use report_v1::report_user;
 use reqwest::ClientBuilder;
 use review_v1::{
     add_review, edit_review, get_latest, get_review_by_id, get_reviews_from_loc,
@@ -56,6 +57,7 @@ mod notifications_v1;
 mod pic_v1;
 mod ping_routes;
 mod reply_v1;
+mod report_v1;
 mod review_v1;
 mod user_v1;
 
@@ -193,7 +195,8 @@ async fn main() -> std::io::Result<()> {
                             web::scope("/notification")
                                 .service(get_notifications)
                                 .service(confirm_notifications),
-                        ),
+                        )
+                        .service(web::scope("/report").service(report_user)),
                 ),
             )
     })
@@ -209,7 +212,7 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:50239/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:58756/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),
