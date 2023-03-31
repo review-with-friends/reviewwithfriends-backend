@@ -14,15 +14,6 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v1
-
-      - name: Get Crate Version
-        id: crate-version
-        uses: colathro/crate-version@1.0.0
-        with:
-          file: "./Cargo.toml"
-
       - name: Build
         run: cargo build --release
 
@@ -37,40 +28,8 @@ jobs:
       - name: Log in to DO Container Registry
         run: doctl registry login --expiry-seconds 6000
 
-      - name: Check if Version Already Exists in Container Registry
-        id: version-exists
-        continue-on-error: true
-        run: docker manifest inspect registry.digitalocean.com/spacedoglabs/backends:belocal-${{steps.crate-version.outputs.version}} > /dev/null || echo "container_exists=$?" >> $GITHUB_ENV
-
       - name: Build image
-        run: |
-          if echo ${{ env.container_exists  == '1' }} | grep -c "true"
-          then
-            docker build -t registry.digitalocean.com/spacedoglabs/backends:belocal-${{steps.crate-version.outputs.version}} . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}" --build-arg "NR_KEY=${{ secrets.NR_KEY }}" --build-arg "APN_KEY=${{ secrets.APN_KEY }}" --build-arg "SENDGRID_KEY=${{ secrets.SENDGRID_KEY }}"
-          else
-            echo "Skipped Building an Image. Image was found."
-          fi
+        run: docker build -t registry.digitalocean.com/spacedoglabs/backends:reviewwithfriends . --build-arg JWT_KEY="${{ secrets.JWT_SECRET }}" --build-arg TWILIO="${{ secrets.TWILIO_KEY }}" --build-arg "DB_CONNECTION=${{ secrets.MONGO_DB }}" --build-arg "SPACES_KEY=${{ secrets.SPACES_KEY }}" --build-arg "SPACES_SECRET=${{ secrets.SPACES_SECRET }}" --build-arg "NR_KEY=${{ secrets.NR_KEY }}" --build-arg "APN_KEY=${{ secrets.APN_KEY }}" --build-arg "SENDGRID_KEY=${{ secrets.SENDGRID_KEY }}"
 
       - name: Push image to DO Container Registry
-        run: |
-          if echo ${{ env.container_exists  == '1' }} | grep -c "true"
-          then
-            docker push registry.digitalocean.com/spacedoglabs/backends:belocal-${{steps.crate-version.outputs.version}}
-          else
-            echo "Skipped Building an Image. Image was found."
-          fi
-
-      - name: Set up kubectl
-        uses: matootie/dokube@v1.4.0
-        with:
-          personalAccessToken: ${{ secrets.DOCKER_LOGIN }}
-          clusterName: spacedoglabs
-
-      - name: Get nodes
-        run: |
-          if echo ${{ env.container_exists  == '1' }} | grep -c "true"
-          then
-            kubectl set image deployment/spotster-deployment backend=registry.digitalocean.com/spacedoglabs/backends:belocal-${{steps.crate-version.outputs.version}}
-          else
-            echo "Skipped updating deployed image."
-          fi
+        run: docker push registry.digitalocean.com/spacedoglabs/backends:reviewwithfriends
