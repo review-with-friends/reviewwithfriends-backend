@@ -2,7 +2,7 @@ use images::DEFAULT_PIC_ID;
 use sqlx::{types::chrono::Utc, Error, MySqlPool};
 use uuid::Uuid;
 
-use super::{Friend, Pic, Review, User};
+use super::{Friend, Pic, Review, User, USER_ACTION_TYPE};
 
 /// Creates a user from the passed User struct.
 /// Sets the pic_id to `DEFAULT_PIC_ID`
@@ -319,8 +319,8 @@ pub async fn delete_pic(client: &MySqlPool, pic_id: &str) -> Result<(), Error> {
 /// Requires all fields to be set on incoming review. Validates nothing explicitly other than column constraints.
 pub async fn create_review(client: &MySqlPool, review: &Review) -> Result<(), Error> {
     sqlx::query(
-        "INSERT INTO review 
-        (id, user_id, created, pic_id, text, stars, location_name, is_custom, category, location) 
+        "INSERT INTO review
+        (id, user_id, created, pic_id, text, stars, location_name, is_custom, category, location)
         VALUES (?,?,?,?,?,?,?,?,?,Point(?,?))",
     )
     .bind(&review.id)
@@ -360,7 +360,7 @@ pub async fn remove_review_pic_id(
 /// ## Sets the `likes.id` to `Uuid::new_v4().to_string()`
 pub async fn create_like(client: &MySqlPool, user_id: &str, review_id: &str) -> Result<(), Error> {
     sqlx::query(
-        "INSERT INTO likes 
+        "INSERT INTO likes
         (id, created, user_id, review_id)
         VALUES (?,?,?,?)",
     )
@@ -420,7 +420,7 @@ pub async fn create_reply(
     text: &str,
 ) -> Result<(), Error> {
     sqlx::query(
-        "INSERT INTO reply 
+        "INSERT INTO reply
         (id, created, user_id, review_id, text)
         VALUES (?,?,?,?,?)",
     )
@@ -543,9 +543,9 @@ pub async fn create_notification(
 
     let row = sqlx::query(
         "SELECT *
-            FROM  notification AS n 
-        WHERE n.review_id = ? 
-            AND n.user_id = ? 
+            FROM  notification AS n
+        WHERE n.review_id = ?
+            AND n.user_id = ?
             AND n.action_type = ?",
     )
     .bind(review_id)
@@ -560,7 +560,7 @@ pub async fn create_notification(
     }
 
     sqlx::query(
-        "INSERT INTO notification 
+        "INSERT INTO notification
         (id, created, review_user_id, user_id, review_id, action_type)
         VALUES (?,?,?,?,?,?)",
     )
@@ -570,6 +570,52 @@ pub async fn create_notification(
     .bind(user_id)
     .bind(review_id)
     .bind(action_type)
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
+
+/// Creates a report record against a user, with a request id also.
+pub async fn report_user(
+    client: &MySqlPool,
+    user_id: &str,
+    reporter_id: &str,
+) -> Result<(), Error> {
+    // No need to report yourself.
+    // This should probably be done by consumers but w/e.
+    if user_id.eq_ignore_ascii_case(reporter_id) {
+        return Ok(());
+    }
+
+    let row = sqlx::query(
+        "SELECT *
+            FROM  reports AS n
+        WHERE n.user_id = ?
+            AND n.reporter_id = ?
+            AND n.report_type = ?",
+    )
+    .bind(user_id)
+    .bind(reporter_id)
+    .bind(USER_ACTION_TYPE)
+    .fetch_all(client)
+    .await?;
+
+    // If this report already exists, just ignore this.
+    if row.len() == 1 {
+        return Ok(());
+    }
+
+    sqlx::query(
+        "INSERT INTO reports
+        (id, created, user_id, reporter_id, report_type)
+        VALUES (?,?,?,?,?)",
+    )
+    .bind(Uuid::new_v4().to_string())
+    .bind(Utc::now().naive_utc())
+    .bind(user_id)
+    .bind(reporter_id)
+    .bind(USER_ACTION_TYPE)
     .execute(client)
     .await?;
 
