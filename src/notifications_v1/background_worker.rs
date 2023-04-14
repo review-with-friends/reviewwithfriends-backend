@@ -39,8 +39,9 @@ pub struct NotificationQueueItem {
     /// User Id who will receieve the notification
     pub user_id: String,
 
-    /// Review id associated with the notification
-    pub review_id: Option<String>,
+    /// A value for navigation used by the client.
+    /// Can be a review id or a user id.
+    pub notification_value: Option<String>,
 
     /// User friendly message for the notification
     pub message: String,
@@ -99,7 +100,7 @@ pub fn start_notification_worker(
                                     &device_token,
                                     &item.message,
                                     item.notification_type,
-                                    item.review_id,
+                                    item.notification_value,
                                 )
                                 .await;
                             if let Err(err) = res {

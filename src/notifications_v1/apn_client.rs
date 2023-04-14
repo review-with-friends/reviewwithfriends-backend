@@ -24,7 +24,7 @@ impl APNClient {
         device_token: &str,
         message: &str,
         notification_type: NotificationType,
-        notification_content: Option<String>,
+        notification_value: Option<String>,
     ) -> Result<(), String> {
         let token: String;
 
@@ -56,7 +56,7 @@ impl APNClient {
             aps: Alert {
                 alert: message.to_string(),
                 notification_type: notification_type.to_string(),
-                notification_value: notification_content.unwrap_or_default(),
+                notification_value: notification_value.unwrap_or_default(),
             },
         };
 

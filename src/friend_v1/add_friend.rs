@@ -94,7 +94,9 @@ pub async fn add_friend(
                                                     enqueue_notification(
                                                         NotificationQueueItem {
                                                             user_id: user.id.to_string(),
-                                                            review_id: None,
+                                                            notification_value: Some(
+                                                                calling_user.id.to_string(),
+                                                            ),
                                                             message: format!(
                                                                 "{} wants to be your friend!",
                                                                 calling_user.display_name

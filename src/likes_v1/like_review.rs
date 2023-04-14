@@ -89,7 +89,7 @@ pub async fn like_review(
                                         enqueue_notification(
                                             NotificationQueueItem {
                                                 user_id: user.id.to_string(),
-                                                review_id: Some(review.id.to_string()),
+                                                notification_value: Some(review.id.to_string()),
                                                 message: format!(
                                                     "{} added your review to their favorites!",
                                                     calling_user.display_name

@@ -85,7 +85,7 @@ pub async fn add_reply(
                                         enqueue_notification(
                                             NotificationQueueItem {
                                                 user_id: user.id.to_string(),
-                                                review_id: Some(review.id.to_string()),
+                                                notification_value: Some(review.id.to_string()),
                                                 message: format!(
                                                     "{} replied to your review!",
                                                     calling_user.display_name
