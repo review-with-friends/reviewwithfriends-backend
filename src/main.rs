@@ -8,8 +8,8 @@ use authorization::Authentication;
 use chrono::Utc;
 use friend_v1::{
     accept_friend, add_friend, cancel_friend, decline_friend, discover_friends, full_friends,
-    get_friends, get_ignored_friends, get_incoming_friends, get_outgoing_friends, ignore_friend,
-    remove_friend,
+    get_friends, get_ignored_friends, get_incoming_friends, get_outgoing_friends,
+    get_user_friends::get_user_friends, ignore_friend, remove_friend,
 };
 use images::create_s3_client;
 use jwt::{encode_apn_jwt_secret, encode_jwt_secret, mint_apn_jwt, APNSigningKey, SigningKeys};
@@ -145,7 +145,8 @@ async fn main() -> std::io::Result<()> {
                                 .service(decline_friend)
                                 .service(remove_friend)
                                 .service(ignore_friend)
-                                .service(discover_friends),
+                                .service(discover_friends)
+                                .service(get_user_friends),
                         )
                         .service(
                             web::scope("/pic")
@@ -212,7 +213,7 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:58756/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:58179/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),

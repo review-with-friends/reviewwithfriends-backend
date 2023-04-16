@@ -759,3 +759,24 @@ pub async fn phone_number_discovery(
 
     return Ok(out);
 }
+
+/// Gets whether users are friends with eachother.
+/// Order of user_id params doesn't really matter.
+pub async fn are_users_friends(
+    client: &MySqlPool,
+    user_id: &str,
+    other_user_id: &str,
+) -> Result<bool, Error> {
+    let rows = sqlx::query(
+        "SELECT *
+        FROM   friend
+        WHERE  user_id = ?
+            AND friend_id = ? ",
+    )
+    .bind(user_id)
+    .bind(other_user_id)
+    .fetch_all(client)
+    .await?;
+
+    return Ok(rows.len() > 0);
+}

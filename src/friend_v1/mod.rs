@@ -13,6 +13,9 @@ pub use decline_friend::*;
 pub mod get_friends;
 pub use get_friends::*;
 
+pub mod get_user_friends;
+pub use get_user_friends::*;
+
 pub mod ignore_friend;
 pub use ignore_friend::*;
 
