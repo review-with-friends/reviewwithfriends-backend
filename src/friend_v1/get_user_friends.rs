@@ -30,7 +30,7 @@ pub async fn get_user_friends(
     match are_friends_res {
         Ok(are_friends) => {
             if are_friends {
-                let friends_res = get_current_friends(&pool, &authenticated_user.0).await;
+                let friends_res = get_current_friends(&pool, &user_friends_query.user_id).await;
                 match friends_res {
                     Ok(friends) => {
                         let friends_pub: Vec<FriendPub> = friends
