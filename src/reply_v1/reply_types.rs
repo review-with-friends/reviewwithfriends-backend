@@ -11,6 +11,7 @@ pub struct ReplyPub {
     pub user_id: String,
     pub review_id: String,
     pub text: String,
+    pub reply_to_id: Option<String>,
 }
 
 impl From<Reply> for ReplyPub {
@@ -21,6 +22,7 @@ impl From<Reply> for ReplyPub {
             user_id: reply.user_id,
             review_id: reply.review_id,
             text: reply.text,
+            reply_to_id: reply.reply_to_id,
         }
     }
 }

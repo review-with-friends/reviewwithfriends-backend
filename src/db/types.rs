@@ -283,11 +283,14 @@ pub struct Reply {
     /// The user who liked the review.
     pub user_id: String,
 
-    // Id of the review the reply is for.
+    /// Id of the review the reply is for.
     pub review_id: String,
 
     /// Text for the reply.
     pub text: String,
+
+    /// Id of the reply this reply is replying to.
+    pub reply_to_id: Option<String>,
 }
 
 impl From<&MySqlRow> for Reply {
@@ -298,6 +301,7 @@ impl From<&MySqlRow> for Reply {
             user_id: row.get("user_id"),
             review_id: row.get("review_id"),
             text: row.get("text"),
+            reply_to_id: row.get("reply_to_id"),
         }
     }
 }

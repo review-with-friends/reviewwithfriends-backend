@@ -418,17 +418,19 @@ pub async fn create_reply(
     user_id: &str,
     review_id: &str,
     text: &str,
+    reply_to_id: Option<&String>,
 ) -> Result<(), Error> {
     sqlx::query(
         "INSERT INTO reply
-        (id, created, user_id, review_id, text)
-        VALUES (?,?,?,?,?)",
+        (id, created, user_id, review_id, text, reply_to_id)
+        VALUES (?,?,?,?,?,?)",
     )
     .bind(Uuid::new_v4().to_string())
     .bind(Utc::now().naive_utc())
     .bind(user_id)
     .bind(review_id)
     .bind(text)
+    .bind(reply_to_id)
     .execute(client)
     .await?;
 
