@@ -13,7 +13,7 @@ pub struct UserReportRequest {
     user_id: String,
 }
 
-/// Fetches your own user record.
+/// Report a user.
 #[post("/user")]
 pub async fn report_user(
     authenticated_user: ReqData<AuthenticatedUser>,
