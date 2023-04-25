@@ -31,9 +31,17 @@ impl From<ExpandedNotification> for NotificationPub {
 
 /// ActionType for associated notification records.
 pub enum ActionType {
+    /// Unknown/default yolo.
     Unknown = 0,
+
+    /// When someone likes your review.
     Like = 1,
+
+    /// When someone comments to your review.
     Reply = 2,
+
+    /// When someone replies to your reply.
+    ReplyTo = 3,
 }
 
 impl From<ActionType> for u8 {
@@ -42,6 +50,7 @@ impl From<ActionType> for u8 {
             ActionType::Unknown => 0,
             ActionType::Like => 1,
             ActionType::Reply => 2,
+            ActionType::ReplyTo => 3,
         }
     }
 }

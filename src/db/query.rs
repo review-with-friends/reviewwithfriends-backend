@@ -780,3 +780,27 @@ pub async fn are_users_friends(
 
     return Ok(rows.len() > 0);
 }
+
+/// Gets a reply with a specific Id from a specific review.
+pub async fn get_reply(
+    client: &MySqlPool,
+    review_id: &str,
+    reply_id: &str,
+) -> Result<Option<Reply>, Error> {
+    let row_opt = sqlx::query(
+        "SELECT *
+        FROM   reply
+        WHERE  id = ?
+            AND review_id = ?",
+    )
+    .bind(reply_id)
+    .bind(review_id)
+    .fetch_optional(client)
+    .await?;
+
+    if let Some(row) = row_opt {
+        return Ok(Some((&row).into()));
+    } else {
+        return Ok(None);
+    }
+}
