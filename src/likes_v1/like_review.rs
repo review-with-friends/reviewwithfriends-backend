@@ -91,7 +91,7 @@ pub async fn like_review(
                                                 user_id: user.id.to_string(),
                                                 notification_value: Some(review.id.to_string()),
                                                 message: format!(
-                                                    "{} added your review to their favorites!",
+                                                    "{} liked your review!",
                                                     calling_user.display_name
                                                 ),
                                                 notification_type: NotificationType::Favorite,
