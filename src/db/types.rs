@@ -256,6 +256,7 @@ pub struct ReviewAnnotation {
     /// Id of the associated pic record.
     pub pic_id: String,
 
+    /// Where to find the pic.
     pub pic_handler: u8,
 
     // category of the review, i.e. restaurant or cafe
