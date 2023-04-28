@@ -203,9 +203,6 @@ pub struct Review {
     /// Datetime the request was made.
     pub created: NaiveDateTime,
 
-    /// Id of the associated pic record.
-    pub pic_id: Option<String>,
-
     // category of the review, i.e. restaurant or cafe
     pub category: String,
 
@@ -234,10 +231,58 @@ impl From<&MySqlRow> for Review {
             id: row.get("id"),
             user_id: row.get("user_id"),
             created: row.get("created"),
-            pic_id: row.get("pic_id"),
             category: row.get("category"),
             text: row.get("text"),
             stars: row.get("stars"),
+            location_name: row.get("location_name"),
+            latitude: row.get("latitude"),
+            longitude: row.get("longitude"),
+            is_custom: row.get("is_custom"),
+        }
+    }
+}
+
+/// Represents a review for a location.
+pub struct ReviewAnnotation {
+    /// Guid unique identifier.
+    pub id: String,
+
+    // user who made the post
+    pub user_id: String,
+
+    /// Datetime the request was made.
+    pub created: NaiveDateTime,
+
+    /// Id of the associated pic record.
+    pub pic_id: String,
+
+    pub pic_handler: u8,
+
+    // category of the review, i.e. restaurant or cafe
+    pub category: String,
+
+    // name of the location as per apple maps
+    pub location_name: String,
+
+    // Latitude of the reviewed location
+    pub latitude: f64,
+
+    // Longitude of the reviewed location
+    pub longitude: f64,
+
+    // custom locations
+    pub is_custom: bool,
+}
+
+impl From<&MySqlRow> for ReviewAnnotation {
+    fn from(row: &MySqlRow) -> ReviewAnnotation {
+        ReviewAnnotation {
+            id: row.get("id"),
+            user_id: row.get("user_id"),
+            created: row.get("created"),
+            pic_id: row.get("pic_id"),
+            pic_handler: row.get("pic_handler"),
+            category: row.get("category"),
             location_name: row.get("location_name"),
             latitude: row.get("latitude"),
             longitude: row.get("longitude"),

@@ -70,9 +70,7 @@ pub async fn remove_review_pic(
         return Ok(HttpResponse::InternalServerError().body("unable to remove pic"));
     }
 
-    if let Some(pic_id) = review.pic_id {
-        best_effort_delete_pic(&s3_client, &pool, &pic_id).await;
-    }
+    best_effort_delete_pic(&s3_client, &pool, &remove_review_pic_request.pic_id).await;
 
     return Ok(HttpResponse::Ok().finish());
 }
