@@ -63,7 +63,7 @@ impl From<ReviewAnnotation> for ReviewAnnotationPub {
             id: review.id,
             user_id: review.user_id,
             created: review.created.timestamp_millis(),
-            text: "".to_string,
+            text: "".to_string(),
             stars: 5,
             pic_id: review.pic_id.clone(),
             pic_url: PicPub::get_url(&review.pic_id, review.pic_handler),
