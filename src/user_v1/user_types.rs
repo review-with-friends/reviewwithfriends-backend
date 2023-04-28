@@ -1,4 +1,4 @@
-use crate::db::User;
+use crate::{db::User, pic_v1::get_digital_ocean_url};
 use serde::Serialize;
 
 /// DB Types are purposefuly not serialized.
@@ -12,6 +12,7 @@ pub struct UserPub {
     pub created: i64,
     pub pic_id: String,
     pub recovery: bool,
+    pub pic_url: String,
 }
 
 impl From<User> for UserPub {
@@ -21,8 +22,9 @@ impl From<User> for UserPub {
             name: user.name,
             display_name: user.display_name,
             created: user.created.timestamp_millis(),
-            pic_id: user.pic_id,
+            pic_id: user.pic_id.clone(),
             recovery: user.email.is_some(),
+            pic_url: get_digital_ocean_url(&user.pic_id),
         }
     }
 }

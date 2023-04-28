@@ -56,6 +56,8 @@ pub async fn add_profile_pic(
 
     match pic_res {
         Ok(pic) => {
+            // We'll always put profile pics here into DO.
+            // This saves a join on querying users.
             if let Err(_) = s3_client
                 .put_object(PutObjectRequest {
                     body: Some(ByteStream::from(<Vec<u8>>::from(pic_bytes))),

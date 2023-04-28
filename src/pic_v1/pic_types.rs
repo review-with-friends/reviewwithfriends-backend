@@ -1,6 +1,10 @@
 use crate::db::Pic;
 use serde::Serialize;
 
+pub fn get_digital_ocean_url(pic_id: &str) -> String {
+    format!("https://bout.sfo3.cdn.digitaloceanspaces.com/{}", pic_id)
+}
+
 /// DB Types are purposefuly not serialized.
 /// We require DTO objects suffixed with 'Pub'
 /// to trim database object appropriately.
@@ -30,12 +34,8 @@ impl From<Pic> for PicPub {
 impl PicPub {
     pub fn get_url(pic_id: &str, pic_handler: u8) -> String {
         match pic_handler {
-            1 => {
-                return format!("https://bout.sfo3.cdn.digitaloceanspaces.com/{}", pic_id);
-            }
-            _ => {
-                return format!("https://bout.sfo3.cdn.digitaloceanspaces.com/{}", pic_id);
-            }
+            1 => get_digital_ocean_url(pic_id),
+            _ => get_digital_ocean_url(pic_id),
         }
     }
 }
