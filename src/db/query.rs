@@ -3,7 +3,7 @@ use sqlx::{types::chrono::Utc, Error, MySqlPool, Row};
 
 use super::{
     AuthAttempt, ExpandedNotification, Friend, FriendRequest, Like, PhoneAuth, Pic, Reply, Review,
-    User,
+    ReviewAnnotation, User,
 };
 
 /// All query text constants defined in this file should be formatted with the following tool:
@@ -273,7 +273,6 @@ pub async fn get_review(
         "SELECT r1.id,
         r1.user_id,
         r1.created,
-        r1.pic_id,
         r1.category,
         r1.text,
         r1.stars,
@@ -290,7 +289,6 @@ pub async fn get_review(
         SELECT r2.id,
         r2.user_id,
         r2.created,
-        r2.pic_id,
         r2.category,
         r2.text,
         r2.stars,
@@ -331,7 +329,6 @@ pub async fn get_reviews_from_location(
         "SELECT r.id,
         r.user_id,
         r.created,
-        r.pic_id,
         r.category,
         r.text,
         r.stars,
@@ -375,7 +372,6 @@ pub async fn get_reviews_from_user(
         "SELECT r.id,
         r.user_id,
         r.created,
-        r.pic_id,
         r.category,
         r.text,
         r.stars,
@@ -414,7 +410,7 @@ pub async fn get_reviews_from_bounds(
     longitude_west: f64,
     longitude_east: f64,
     page: u32,
-) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+) -> Result<Vec<ReviewAnnotation>, Box<dyn std::error::Error>> {
     const PAGE_SIZE: u32 = 100;
     let lower_count = page * PAGE_SIZE;
 
@@ -423,9 +419,8 @@ pub async fn get_reviews_from_bounds(
         r.user_id,
         r.created,
         p.id             AS pic_id,
+        p.pic_handler   AS pic_handler,
         r.category,
-        r.text,
-        r.stars,
         r.location_name,
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
@@ -452,7 +447,7 @@ pub async fn get_reviews_from_bounds(
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
+    let out: Vec<ReviewAnnotation> = rows.iter().map(|row| row.into()).collect();
 
     return Ok(out);
 }
@@ -472,7 +467,7 @@ pub async fn get_reviews_from_bounds_with_exclusions(
     longitude_west_e: f64,
     longitude_east_e: f64,
     page: u32,
-) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+) -> Result<Vec<ReviewAnnotation>, Box<dyn std::error::Error>> {
     const PAGE_SIZE: u32 = 100;
     let lower_count = page * PAGE_SIZE;
 
@@ -481,9 +476,8 @@ pub async fn get_reviews_from_bounds_with_exclusions(
         r.user_id,
         r.created,
         p.id             AS pic_id,
+        p.pic_handler   AS pic_handler,
         r.category,
-        r.text,
-        r.stars,
         r.location_name,
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
@@ -516,7 +510,7 @@ pub async fn get_reviews_from_bounds_with_exclusions(
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
+    let out: Vec<ReviewAnnotation> = rows.iter().map(|row| row.into()).collect();
 
     return Ok(out);
 }
@@ -537,7 +531,6 @@ pub async fn get_latest_reviews(
         "SELECT r.id,
         r.user_id,
         r.created,
-        r.pic_id,
         r.category,
         r.text,
         r.stars,
@@ -580,7 +573,6 @@ pub async fn search_latest_reviews(
         "SELECT r.id,
         r.user_id,
         r.created,
-        r.pic_id,
         r.category,
         r.text,
         r.stars,
@@ -638,7 +630,6 @@ pub async fn get_liked_reviews(
         "SELECT r.id,
             r.user_id,
             r.created,
-            r.pic_id,
             r.category,
             r.text,
             r.stars,

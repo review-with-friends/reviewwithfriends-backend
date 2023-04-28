@@ -7,9 +7,6 @@ pub use add_profile_pic::*;
 pub mod add_review_pic;
 pub use add_review_pic::*;
 
-pub mod get_review_pic;
-pub use get_review_pic::*;
-
 pub mod remove_review_pic;
 pub use remove_review_pic::*;
 

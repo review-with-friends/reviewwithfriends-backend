@@ -4,7 +4,7 @@ use crate::{
     authorization::AuthenticatedUser,
     db::{
         create_pic, create_review, get_current_friends, get_user, remove_review_and_children,
-        remove_review_pic_id, Review,
+        Review,
     },
     notifications_v1::{
         enqueue_notification, NotificationQueue, NotificationQueueItem, NotificationType,
@@ -220,13 +220,11 @@ async fn upload_and_store_pics(
                         })
                         .await
                     {
-                        let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
                         let _ = remove_review_and_children(&pool, &review.id).await;
 
                         return Err("unable to store review pic".to_string());
                     }
                 } else {
-                    let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
                     let _ = remove_review_and_children(&pool, &review.id).await;
 
                     return Err("failed to read pic buffer".to_string());
@@ -258,7 +256,6 @@ fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
         id: Uuid::new_v4().to_string(),
         user_id: user_id.to_string(),
         created: post_date,
-        pic_id: None,
         category: request.category.clone(),
         text: request.text.clone(),
         stars: request.stars,

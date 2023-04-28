@@ -27,7 +27,7 @@ use opentelemetry::{
     KeyValue,
 };
 use opentelemetry_otlp::WithExportConfig;
-use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, get_review_pic, remove_review_pic};
+use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, remove_review_pic};
 use ping_routes::ping;
 use reply_v1::{add_reply, get_replies, remove_reply};
 use report_v1::report_user;
@@ -156,7 +156,6 @@ async fn main() -> std::io::Result<()> {
                         .service(
                             web::scope("/review")
                                 .service(get_latest)
-                                .service(get_review_pic)
                                 .service(add_review_pic)
                                 .service(remove_review_pic)
                                 .service(get_reviews_from_map_bounds)
@@ -213,7 +212,7 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:58179/mob"),
+            db_connection_string: String::from("mysql://root:test123@localhost:61296/mob"),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),

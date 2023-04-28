@@ -1,4 +1,6 @@
-use crate::{authorization::AuthenticatedUser, db::get_reviews_from_bounds};
+use crate::{
+    authorization::AuthenticatedUser, db::get_reviews_from_bounds, review_v1::ReviewAnnotationPub,
+};
 use actix_web::{
     error::ErrorInternalServerError,
     get,
@@ -7,8 +9,6 @@ use actix_web::{
 };
 use serde::Deserialize;
 use sqlx::MySqlPool;
-
-use super::review_types::ReviewPub;
 
 #[derive(Deserialize)]
 pub struct ReviewMapBoundRequest {
@@ -39,9 +39,9 @@ pub async fn get_reviews_from_map_bounds(
 
     match review_res {
         Ok(reviews) => {
-            let reviews_pub: Vec<ReviewPub> = reviews
+            let reviews_pub: Vec<ReviewAnnotationPub> = reviews
                 .into_iter()
-                .map(|f| -> ReviewPub { f.into() })
+                .map(|f| -> ReviewAnnotationPub { f.into() })
                 .collect();
             Ok(Json(reviews_pub))
         }
