@@ -730,6 +730,19 @@ pub async fn get_notifications(
     return Ok(out);
 }
 
+/// Gets the count of notifications the user has pending.
+pub async fn get_notification_count(client: &MySqlPool, user_id: &str) -> i64 {
+    let count_res = sqlx::query("SELECT count(*) FROM notification WHERE review_user_id = ?")
+        .bind(user_id)
+        .fetch_one(client)
+        .await;
+
+    match count_res {
+        Ok(row) => return row.get(0),
+        Err(_) => return 0,
+    }
+}
+
 /// Searches for users that match any of the given phone numbers.
 /// It's expected the caller randomize the ordering to ensure
 /// reverse lookups are not as efficient.

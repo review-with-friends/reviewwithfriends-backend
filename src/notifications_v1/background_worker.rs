@@ -1,6 +1,5 @@
-use crate::db::get_user;
-
 use super::APNClient;
+use crate::db::{get_notification_count, get_user};
 use actix_web::web::Data;
 use opentelemetry::global;
 use opentelemetry::trace::{Span, Status, Tracer};
@@ -95,12 +94,14 @@ pub fn start_notification_worker(
                 if let Ok(user_opt) = get_user(&pool, &item.user_id).await {
                     if let Some(user) = user_opt {
                         if let Some(device_token) = user.device_token {
+                            let badge_count = get_notification_count(&pool, &user.id).await;
                             let res = client
                                 .send_notification(
                                     &device_token,
                                     &item.message,
                                     item.notification_type,
                                     item.notification_value,
+                                    badge_count,
                                 )
                                 .await;
                             if let Err(err) = res {
