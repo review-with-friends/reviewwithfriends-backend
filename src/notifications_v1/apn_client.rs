@@ -1,10 +1,9 @@
+use super::NotificationType;
 use chrono::prelude::*;
 use jwt::{mint_apn_jwt, APNSigningKey};
 use reqwest::Client;
 use serde::Serialize;
 use std::sync::Mutex;
-
-use super::NotificationType;
 
 /// Client use to communicate with Apple Push-Notification Network.
 pub struct APNClient {
@@ -25,6 +24,7 @@ impl APNClient {
         message: &str,
         notification_type: NotificationType,
         notification_value: Option<String>,
+        badge_count: i64,
     ) -> Result<(), String> {
         let token: String;
 
@@ -54,6 +54,7 @@ impl APNClient {
 
         let pn = PushNotification {
             aps: Alert {
+                badge: badge_count,
                 alert: message.to_string(),
                 notification_type: notification_type.to_string(),
                 notification_value: notification_value.unwrap_or_default(),
@@ -110,13 +111,14 @@ impl APNClient {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct PushNotification {
     pub aps: Alert,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct Alert {
+    pub badge: i64,
     pub alert: String,
     pub notification_type: String,
     pub notification_value: String,
