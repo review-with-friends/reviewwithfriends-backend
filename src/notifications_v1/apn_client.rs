@@ -60,7 +60,6 @@ impl APNClient {
                 notification_value: notification_value.unwrap_or_default(),
             },
         };
-        println!("{:?}", pn);
 
         let body: String;
         let body_res = serde_json::to_string(&pn);
