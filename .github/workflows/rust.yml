@@ -10,7 +10,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
+    env:
+      DATABASE_URL: ${{ secrets.MONGO_DB }}
+      
     steps:
       - uses: actions/checkout@v3
 
@@ -19,12 +22,23 @@ jobs:
         
       - name: Add IP to Database Trusted Sources
         uses: review-with-friends/manage-db-action@giga-1
+        with:
+          action: "add"
+          database_id: "402172b2-958a-4edf-818d-6d43ed277996"
+          digitalocean_token: ${{ secrets.DOCKER_LOGIN }}
 
       - name: Build
         run: cargo build --release
 
       - name: Test Validation
         run: cargo test -p validation --release
+      
+      - name: Add IP to Database Trusted Sources
+        uses: review-with-friends/manage-db-action@giga-1
+        with:
+          action: "remove"
+          database_id: "402172b2-958a-4edf-818d-6d43ed277996"
+          digitalocean_token: ${{ secrets.DOCKER_LOGIN }}
 
       - name: Install doctl
         uses: digitalocean/action-doctl@v2
