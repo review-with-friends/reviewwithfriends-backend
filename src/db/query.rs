@@ -603,18 +603,11 @@ pub async fn search_latest_reviews(
 /// Gets all likes for a given review.
 /// ## Does not validate the review is able to be viewed by calling user.
 pub async fn get_all_likes(client: &MySqlPool, review_id: &str) -> Result<Vec<Like>, Error> {
-    let rows = sqlx::query(
-        "SELECT *
-        FROM   likes
-        WHERE  review_id = ? ",
-    )
-    .bind(review_id)
-    .fetch_all(client)
-    .await?;
+    let rows = sqlx::query_as!(Like, "SELECT * FROM likes WHERE  review_id = ? ", review_id)
+        .fetch_all(client)
+        .await?;
 
-    let out: Vec<Like> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(rows);
 }
 
 /// Gets all likes that a user has made

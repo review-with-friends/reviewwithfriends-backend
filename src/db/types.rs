@@ -307,17 +307,6 @@ pub struct Like {
     pub review_id: String,
 }
 
-impl From<&MySqlRow> for Like {
-    fn from(row: &MySqlRow) -> Like {
-        Like {
-            id: row.get("id"),
-            created: row.get("created"),
-            user_id: row.get("user_id"),
-            review_id: row.get("review_id"),
-        }
-    }
-}
-
 /// Represents a reply to a post.
 pub struct Reply {
     /// Guid unique identifier.
