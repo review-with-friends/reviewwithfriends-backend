@@ -18,7 +18,7 @@ jobs:
         uses: arduino/setup-protoc@v1
         
       - name: Add IP to Database Trusted Sources
-        uses: review-with-friends/manage-db-action@1.0
+        uses: review-with-friends/manage-db-action@giga-1
 
       - name: Build
         run: cargo build --release
