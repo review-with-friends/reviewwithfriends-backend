@@ -33,7 +33,7 @@ jobs:
       - name: Test Validation
         run: cargo test -p validation --release
       
-      - name: Add IP to Database Trusted Sources
+      - name: Remove IP from Database Trusted Sources
         uses: review-with-friends/manage-db-action@giga-1
         if: always()
         with:
