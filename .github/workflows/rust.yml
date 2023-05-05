@@ -20,12 +20,18 @@ jobs:
       - name: Install Protoc
         uses: arduino/setup-protoc@v1
         
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli
+        
       - name: Add IP to Database Trusted Sources
         uses: review-with-friends/manage-db-action@giga-1
         with:
           action: "add"
           database_id: "402172b2-958a-4edf-818d-6d43ed277996"
           digitalocean_token: ${{ secrets.DOCKER_LOGIN }}
+      
+      - name: Run sqlx migrations
+        run: sqlx migrate run
 
       - name: Build
         run: cargo build --release
