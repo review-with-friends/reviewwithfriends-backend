@@ -212,7 +212,7 @@ fn build_config() -> Config {
     match is_dev {
         Ok(_) => Config {
             twilio_key: String::from("123"),
-            db_connection_string: String::from("mysql://root:test123@localhost:61296/mob"),
+            db_connection_string: env::var("DATABASE_URL").unwrap(),
             signing_keys: encode_jwt_secret("thisisatestkey"),
             spaces_key: env::var("MOB_SPACES_KEY").unwrap(),
             spaces_secret: env::var("MOB_SPACES_SECRET").unwrap(),

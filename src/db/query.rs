@@ -11,16 +11,20 @@ use super::{
 
 /// Simply gets a ping record.
 pub async fn get_ping(client: &MySqlPool, id: &str) -> Result<String, Error> {
-    let row = sqlx::query(
+    struct Ping {
+        id: String,
+    }
+    let ping = sqlx::query_as!(
+        Ping,
         "SELECT *
         FROM   ping
         WHERE  id = ? ",
+        id
     )
-    .bind(id)
     .fetch_one(client)
     .await?;
 
-    return Ok(row.try_get("id")?);
+    return Ok(ping.id);
 }
 
 /// Tries to get a user by `user.id`, and will return `None` if not found.
@@ -108,20 +112,17 @@ pub async fn does_user_exist_by_name(client: &MySqlPool, name: &str) -> Result<b
 
 /// Gets a given user by `user.phone`, and will return `None` if not found.
 pub async fn get_user_by_phone(client: &MySqlPool, phone: &str) -> Result<Option<User>, Error> {
-    let rows = sqlx::query(
+    let mut rows = sqlx::query_as!(
+        User,
         "SELECT *
-        FROM   user
-        WHERE  phone = ? ",
+        FROM user
+        WHERE phone = ? ",
+        phone
     )
-    .bind(phone)
     .fetch_all(client)
     .await?;
 
-    if rows.len() != 1 {
-        return Ok(None);
-    }
-
-    return Ok(Some((&(rows.first())).unwrap().into()));
+    return Ok(rows.pop());
 }
 
 /// Gets the current phoneauths.
