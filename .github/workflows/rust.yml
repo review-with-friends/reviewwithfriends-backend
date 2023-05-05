@@ -35,6 +35,7 @@ jobs:
       
       - name: Add IP to Database Trusted Sources
         uses: review-with-friends/manage-db-action@giga-1
+        if: always()
         with:
           action: "remove"
           database_id: "402172b2-958a-4edf-818d-6d43ed277996"
