@@ -7,6 +7,7 @@ edition = "2021"
 validation = { path = "./lib/validation" }
 jwt = { path = "./lib/jwt" }
 images = { path = "./lib/images" }
+moka = "0.11.0"
 sqlx = { version = "0.6.2", features = ["runtime-tokio-rustls", "chrono", "mysql", "decimal"] }
 serde = { version = "1.0.137", features = ["derive"] }
 serde_json = { version = "1.0", features = ["float_roundtrip"] }

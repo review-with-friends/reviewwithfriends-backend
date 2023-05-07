@@ -1,3 +1,4 @@
+use crate::user_v1::update_user_device_token;
 use actix_web::{
     web::{self, Data, PayloadConfig},
     App, HttpServer,
@@ -14,6 +15,7 @@ use friend_v1::{
 use images::create_s3_client;
 use jwt::{encode_apn_jwt_secret, encode_jwt_secret, mint_apn_jwt, APNSigningKey, SigningKeys};
 use likes_v1::{get_current_likes, get_likes, like_review, unlike_review};
+use moka::sync::Cache;
 use notifications_v1::{
     confirm_notifications, get_notifications, start_notification_worker, APNClient,
     NotificationQueue,
@@ -29,6 +31,7 @@ use opentelemetry::{
 use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, remove_review_pic};
 use ping_routes::ping;
+use ratelimit::RateLimit;
 use reply_v1::{add_reply, get_replies, remove_reply};
 use report_v1::report_user;
 use reqwest::ClientBuilder;
@@ -45,8 +48,6 @@ use user_v1::{
     update_user_recovery_email,
 };
 
-use crate::user_v1::update_user_device_token;
-
 mod auth;
 mod authorization;
 mod compound_types;
@@ -56,6 +57,7 @@ mod likes_v1;
 mod notifications_v1;
 mod pic_v1;
 mod ping_routes;
+mod ratelimit;
 mod reply_v1;
 mod report_v1;
 mod review_v1;
@@ -109,8 +111,11 @@ async fn main() -> std::io::Result<()> {
 
     start_notification_worker(queue.clone(), apn_client.clone(), Data::new(pool.clone()));
 
+    let ratelimit_cache = setup_moka_cache();
+
     HttpServer::new(move || {
         App::new()
+            .app_data(Data::new(ratelimit_cache.clone()))
             .app_data(Data::new(config.clone()))
             .app_data(Data::new(pool.clone()))
             .app_data(Data::new(client.clone()))
@@ -118,6 +123,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(apn_client.clone())
             .app_data(queue.clone())
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
+            .wrap(RateLimit)
             .wrap(Authentication)
             .wrap(RequestTracing::new())
             .service(web::scope("/ping").service(ping))
@@ -271,4 +277,11 @@ fn setup_tracing(config: &Config) {
             .with_trace_config(trace::config().with_sampler(Sampler::AlwaysOn))
             .install_simple();
     }
+}
+
+fn setup_moka_cache() -> Cache<String, usize> {
+    Cache::builder()
+        .time_to_live(Duration::from_secs(60))
+        .max_capacity(10000)
+        .build()
 }

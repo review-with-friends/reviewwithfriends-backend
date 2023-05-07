@@ -1,5 +1,4 @@
-use std::future::{ready, Ready};
-
+use crate::Config;
 use actix_web::{
     body::EitherBody,
     dev::{self, Service, ServiceRequest, ServiceResponse, Transform},
@@ -8,8 +7,7 @@ use actix_web::{
     Error, HttpMessage, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
-
-use crate::Config;
+use std::future::{ready, Ready};
 
 /// A user who has passed authentication checks.
 /// The derived String type is the user_id for the user.
