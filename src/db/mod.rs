@@ -4,6 +4,9 @@ pub use types::*;
 pub mod query;
 pub use query::*;
 
+pub mod admin_query;
+pub use admin_query::*;
+
 pub mod execute;
 pub use execute::*;
 
