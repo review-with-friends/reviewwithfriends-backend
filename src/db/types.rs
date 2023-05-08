@@ -25,6 +25,9 @@ pub struct User {
 
     /// Optional recovery email to be set by the user.
     pub email: Option<String>,
+
+    /// 0 Is enabled, 1 is disabled.
+    pub disabled: i8,
 }
 
 impl From<&MySqlRow> for User {
@@ -38,6 +41,7 @@ impl From<&MySqlRow> for User {
             pic_id: row.get("pic_id"),
             device_token: row.get("device_token"),
             email: row.get("email"),
+            disabled: row.get("disabled"),
         }
     }
 }

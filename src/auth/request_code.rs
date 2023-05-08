@@ -78,6 +78,7 @@ pub async fn request_code(
                     pic_id: "default".to_string(),
                     device_token: None,
                     email: None,
+                    disabled: 0,
                 };
 
                 let create_res = create_user(&pool, &existing_user).await;
@@ -94,6 +95,10 @@ pub async fn request_code(
             return Err(ErrorInternalServerError("error fetching user"));
         }
     };
+
+    if existing_user.disabled == 1 {
+        return Err(ErrorBadRequest("user is disabled"));
+    }
 
     let auth_code = get_new_auth_code();
     let phoneauth_res = create_phoneauth(&pool, &existing_user.phone, &auth_code).await;
