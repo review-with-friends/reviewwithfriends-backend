@@ -1,10 +1,8 @@
-use crate::Config;
 use actix_web::{
     body::EitherBody,
     dev::{self, Service, ServiceRequest, ServiceResponse, Transform},
-    http::header,
     web::Data,
-    Error, HttpMessage, HttpResponse,
+    Error, HttpResponse,
 };
 use futures_util::future::LocalBoxFuture;
 use moka::sync::Cache;
