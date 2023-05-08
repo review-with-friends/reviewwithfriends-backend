@@ -4,6 +4,7 @@ use actix_web::{
     App, HttpServer,
 };
 use actix_web_opentelemetry::RequestTracing;
+use admin_v1::get_user_count;
 use auth::*;
 use authorization::Authentication;
 use chrono::Utc;
@@ -48,6 +49,7 @@ use user_v1::{
     update_user_recovery_email,
 };
 
+mod admin_v1;
 mod auth;
 mod authorization;
 mod compound_types;
@@ -135,6 +137,7 @@ async fn main() -> std::io::Result<()> {
                     .service(recovery_code)
                     .service(update_phone),
             )
+            .service(web::scope("/admin").service(get_user_count))
             .service(
                 web::scope("/api").service(
                     web::scope("/v1")

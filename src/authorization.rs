@@ -73,6 +73,20 @@ where
         if let Ok(token) = authorization_header.to_str() {
             if let Some(config) = request.app_data::<Data<Config>>() {
                 if let Some(user_id) = jwt::validate_jwt(&config.signing_keys, token) {
+                    // Additional check if we are routing to an admin route.
+                    // This is after the jwt validation, and only issued JWTs are valid.
+                    // Only I am allowed uwuu~~~ 🥰 - maybe improve this later if more admins are needed
+                    if request.path().starts_with("/admin") {
+                        if user_id != "70bf5ab0-a51a-4f2a-b07d-009f571f62da" {
+                            let (request, _pl) = request.into_parts();
+
+                            let response =
+                                HttpResponse::Unauthorized().finish().map_into_right_body();
+
+                            return Box::pin(async { Ok(ServiceResponse::new(request, response)) });
+                        }
+                    }
+
                     request.extensions_mut().insert(AuthenticatedUser(user_id));
                     let res = self.service.call(request);
 
