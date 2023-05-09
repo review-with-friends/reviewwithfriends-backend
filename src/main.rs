@@ -1,6 +1,7 @@
 use crate::user_v1::update_user_device_token;
 use actix_cors::Cors;
 use actix_web::{
+    http,
     web::{self, Data, PayloadConfig},
     App, HttpServer,
 };
@@ -128,12 +129,15 @@ async fn main() -> std::io::Result<()> {
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
             .wrap(RateLimit)
             .wrap(Authentication)
+            .wrap(RequestTracing::new())
             .wrap(
                 Cors::default()
                     .allowed_origin("https://reviewwithfriends.com")
+                    .allowed_methods(vec!["GET", "POST"])
+                    .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+                    .allowed_header(http::header::CONTENT_TYPE)
                     .max_age(3600),
             )
-            .wrap(RequestTracing::new())
             .service(web::scope("/ping").service(ping))
             .service(
                 web::scope("/auth")
