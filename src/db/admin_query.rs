@@ -11,7 +11,7 @@ pub async fn get_total_user_count(client: &MySqlPool) -> Result<i64, Error> {
     return Ok(row.get(0));
 }
 
-/// Simply gets a ping record.
+/// Simply gets all report records.
 pub async fn get_all_reports(client: &MySqlPool) -> Result<Vec<Report>, Error> {
     let reports = sqlx::query_as!(
         Report,
