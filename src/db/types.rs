@@ -415,3 +415,21 @@ impl From<&MySqlRow> for ExpandedNotification {
         }
     }
 }
+
+/// Represents a report against a user.
+pub struct Report {
+    /// Guid unique identifier.
+    pub id: String,
+
+    /// Datetime the report was made.
+    pub created: NaiveDateTime,
+
+    /// The user who got reported
+    pub user_id: String,
+
+    // Id of the user who reported
+    pub reporter_id: String,
+
+    /// The type of report.
+    pub report_type: u8,
+}
