@@ -18,11 +18,11 @@ pub async fn get_all_reports(
 
     match report_res {
         Ok(results) => {
-            let friend_requests_pub: Vec<ReportPub> = results
+            let reports_pub: Vec<ReportPub> = results
                 .into_iter()
                 .map(|f| -> ReportPub { f.into() })
                 .collect();
-            Ok(Json(friend_requests_pub))
+            Ok(Json(reports_pub))
         }
         Err(_) => return Err(ErrorInternalServerError("could not fetch reports")),
     }
