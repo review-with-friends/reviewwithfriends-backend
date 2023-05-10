@@ -133,6 +133,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(
                 Cors::default()
                     .allowed_origin("https://reviewwithfriends.com")
+                    .allowed_origin("http://localhost:8000")
                     .allowed_methods(vec!["GET", "POST"])
                     .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
                     .allowed_header(http::header::CONTENT_TYPE)
