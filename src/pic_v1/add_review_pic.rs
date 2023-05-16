@@ -70,7 +70,7 @@ pub async fn add_review_pic(
 
     match pics_res {
         Ok(pics) => {
-            if pics.len() >= 4 {
+            if pics.len() >= 7 {
                 return Ok(HttpResponse::BadRequest().body("too many pics already"));
             }
         }
