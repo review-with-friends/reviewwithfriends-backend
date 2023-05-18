@@ -36,7 +36,7 @@ use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, remove_review_pic
 use ping_routes::ping;
 use ratelimit::RateLimit;
 use reply_v1::{add_reply, get_replies, remove_reply};
-use report_v1::report_user;
+use report_v1::{report_bug, report_user, GithubClient};
 use reqwest::ClientBuilder;
 use review_v1::{
     add_review, edit_review, get_latest, get_review_by_id, get_reviews_from_loc,
@@ -77,6 +77,7 @@ pub struct Config {
     newrelic_key: String,
     apn_key: APNSigningKey,
     sendgrid_key: String,
+    github_key: String,
 }
 
 const PIC_CONFIG_LIMIT: usize = 4_262_144;
@@ -103,6 +104,14 @@ async fn main() -> std::io::Result<()> {
         issued_time: Mutex::new(Utc::now().timestamp()),
     });
 
+    let gh_client = web::Data::new(GithubClient {
+        client: ClientBuilder::new()
+            .timeout(Duration::new(5, 0))
+            .build()
+            .unwrap(),
+        token: config.github_key.clone(),
+    });
+
     let pool: MySqlPool = MySqlPool::connect(&config.db_connection_string)
         .await
         .unwrap();
@@ -125,6 +134,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(Data::new(client.clone()))
             .app_data(Data::new(http_client.clone()))
             .app_data(apn_client.clone())
+            .app_data(gh_client.clone())
             .app_data(queue.clone())
             .app_data(PayloadConfig::new(PIC_CONFIG_LIMIT))
             .wrap(RateLimit)
@@ -220,7 +230,11 @@ async fn main() -> std::io::Result<()> {
                                 .service(get_notifications)
                                 .service(confirm_notifications),
                         )
-                        .service(web::scope("/report").service(report_user)),
+                        .service(
+                            web::scope("/report")
+                                .service(report_user)
+                                .service(report_bug),
+                        ),
                 ),
             )
     })
@@ -243,6 +257,7 @@ fn build_config() -> Config {
             newrelic_key: String::from("Default"),
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
             sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
+            github_key: env::var("GITHUB_KEY").unwrap(),
         },
         Err(_) => Config {
             twilio_key: env::var("TWILIO").unwrap(),
@@ -253,6 +268,7 @@ fn build_config() -> Config {
             newrelic_key: env::var("NR_KEY").unwrap(),
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
             sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
+            github_key: env::var("GITHUB_KEY").unwrap(),
         },
     }
 }

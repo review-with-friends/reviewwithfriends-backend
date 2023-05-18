@@ -38,8 +38,7 @@ pub async fn report_user(
         Ok(_) => {
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(err) => {
-            println!("{}", err);
+        Err(_) => {
             return Err(ErrorInternalServerError(
                 "unable to create report".to_string(),
             ));
