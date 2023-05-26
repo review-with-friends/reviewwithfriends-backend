@@ -189,6 +189,25 @@ pub async fn get_incoming_friend_requests(
     return Ok(out);
 }
 
+/// Gets the users current incoming friend requests that can be accepted. This included requests that have been ignored.
+pub async fn get_acceptable_friend_requests(
+    client: &MySqlPool,
+    user_id: &str,
+) -> Result<Vec<FriendRequest>, Error> {
+    let rows = sqlx::query(
+        "SELECT *
+        FROM   friendrequest
+        WHERE  friend_id = ? ",
+    )
+    .bind(user_id)
+    .fetch_all(client)
+    .await?;
+
+    let out: Vec<FriendRequest> = rows.iter().map(|row| row.into()).collect();
+
+    return Ok(out);
+}
+
 /// Gets the users current incoming friend requests that `friendrequest.ignored` is true.
 pub async fn get_incoming_ignored_friend_requests(
     client: &MySqlPool,

@@ -1,6 +1,6 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{accept_friend_request, get_incoming_friend_requests},
+    db::{accept_friend_request, get_acceptable_friend_requests},
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -24,7 +24,7 @@ pub async fn accept_friend(
     accept_request: Query<AcceptRequest>,
 ) -> Result<impl Responder> {
     let friend_requests_res =
-        get_incoming_friend_requests(&pool, &authenticated_user.0.clone()).await;
+        get_acceptable_friend_requests(&pool, &authenticated_user.0.clone()).await;
 
     match friend_requests_res {
         Ok(friend_requests) => {
