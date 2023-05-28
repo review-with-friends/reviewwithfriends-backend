@@ -12,3 +12,6 @@ pub use like_types::*;
 
 pub mod get_current_likes;
 pub use get_current_likes::*;
+
+pub mod get_current_liked_reviews_full;
+pub use get_current_liked_reviews_full::*;

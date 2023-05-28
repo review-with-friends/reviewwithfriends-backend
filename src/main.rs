@@ -17,7 +17,9 @@ use friend_v1::{
 };
 use images::create_s3_client;
 use jwt::{encode_apn_jwt_secret, encode_jwt_secret, mint_apn_jwt, APNSigningKey, SigningKeys};
-use likes_v1::{get_current_likes, get_likes, like_review, unlike_review};
+use likes_v1::{
+    get_current_liked_reviews_full, get_current_likes, get_likes, like_review, unlike_review,
+};
 use moka::sync::Cache;
 use notifications_v1::{
     confirm_notifications, get_notifications, start_notification_worker, APNClient,
@@ -220,7 +222,8 @@ async fn main() -> std::io::Result<()> {
                                 .service(get_likes)
                                 .service(like_review)
                                 .service(unlike_review)
-                                .service(get_current_likes),
+                                .service(get_current_likes)
+                                .service(get_current_liked_reviews_full),
                         )
                         .service(
                             web::scope("/reply")
