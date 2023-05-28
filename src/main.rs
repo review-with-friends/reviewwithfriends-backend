@@ -39,9 +39,10 @@ use reply_v1::{add_reply, get_replies, remove_reply};
 use report_v1::{report_bug, report_user, GithubClient};
 use reqwest::ClientBuilder;
 use review_v1::{
-    add_review, edit_review, get_latest, get_review_by_id, get_reviews_from_loc,
-    get_reviews_from_map_bounds, get_reviews_from_map_bounds_with_exclusions,
-    get_reviews_from_user, remove_review, search_latest,
+    add_review, edit_review, get_full_reviews_from_user, get_latest, get_latest_full,
+    get_review_by_id, get_reviews_from_loc, get_reviews_from_map_bounds,
+    get_reviews_from_map_bounds_with_exclusions, get_reviews_from_user, remove_review,
+    search_latest,
 };
 use sqlx::MySqlPool;
 use std::sync::Mutex;
@@ -190,12 +191,14 @@ async fn main() -> std::io::Result<()> {
                         .service(
                             web::scope("/review")
                                 .service(get_latest)
+                                .service(get_latest_full)
                                 .service(add_review_pic)
                                 .service(remove_review_pic)
                                 .service(get_reviews_from_map_bounds)
                                 .service(get_reviews_from_map_bounds_with_exclusions)
                                 .service(get_reviews_from_loc)
                                 .service(get_reviews_from_user)
+                                .service(get_full_reviews_from_user)
                                 .service(add_review)
                                 .service(remove_review)
                                 .service(get_review_by_id)
