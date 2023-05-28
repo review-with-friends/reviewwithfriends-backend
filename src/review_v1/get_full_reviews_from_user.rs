@@ -1,4 +1,7 @@
-use crate::{authorization::AuthenticatedUser, db};
+use crate::{
+    authorization::AuthenticatedUser, compound_types::CompoundReviewPub, db,
+    review_v1::gather_compound_review,
+};
 use actix_web::{
     error::ErrorInternalServerError,
     get,
@@ -16,8 +19,8 @@ pub struct UserReviewRequest {
     page: u32,
 }
 
-#[get("/reviews_from_user")]
-pub async fn get_reviews_from_user(
+#[get("/full_reviews_from_user")]
+pub async fn get_full_reviews_from_user(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
     user_review_request: Query<UserReviewRequest>,
@@ -30,18 +33,34 @@ pub async fn get_reviews_from_user(
     )
     .await;
 
+    let mut compound_reviews: Vec<CompoundReviewPub> = vec![];
+
     match review_res {
         Ok(reviews) => {
             let reviews_pub: Vec<ReviewPub> = reviews
                 .into_iter()
                 .map(|f| -> ReviewPub { f.into() })
                 .collect();
-            Ok(Json(reviews_pub))
+
+            for review_pub in reviews_pub.into_iter() {
+                let compound_review_res = gather_compound_review(&pool, review_pub).await;
+
+                match compound_review_res {
+                    Ok(compound_review) => compound_reviews.push(compound_review),
+                    Err(_) => {
+                        return Err(ErrorInternalServerError(
+                            "failed gathering review contents".to_string(),
+                        ))
+                    }
+                }
+            }
         }
         Err(_) => {
             return Err(ErrorInternalServerError(
-                "unable to get reviews for location".to_string(),
+                "unable to get reviews for user".to_string(),
             ))
         }
     }
+
+    return Ok(Json(compound_reviews));
 }

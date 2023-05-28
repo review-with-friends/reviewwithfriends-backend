@@ -1,11 +1,4 @@
-use crate::{
-    authorization::AuthenticatedUser,
-    compound_types::CompoundReviewPub,
-    db::{get_all_likes, get_all_pics, get_all_replies, get_review},
-    likes_v1::LikePub,
-    pic_v1::PicPub,
-    reply_v1::ReplyPub,
-};
+use crate::{authorization::AuthenticatedUser, db::get_review, review_v1::gather_compound_review};
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
     get,
@@ -45,54 +38,16 @@ pub async fn get_review_by_id(
         Err(_) => return Err(ErrorInternalServerError("unable to get review")),
     }
 
-    let likes: Vec<LikePub>;
+    let compound_review_res = gather_compound_review(&pool, review).await;
 
-    let likes_res = get_all_likes(&pool, &review_request.review_id).await;
-
-    match likes_res {
-        Ok(likes_tmp) => {
-            likes = likes_tmp
-                .into_iter()
-                .map(|f| -> LikePub { f.into() })
-                .collect();
-        }
-        Err(_) => return Err(ErrorInternalServerError("unable to get likes")),
-    }
-
-    let replies: Vec<ReplyPub>;
-
-    let replies_res = get_all_replies(&pool, &review_request.review_id).await;
-
-    match replies_res {
-        Ok(replies_tmp) => {
-            replies = replies_tmp
-                .into_iter()
-                .map(|f| -> ReplyPub { f.into() })
-                .collect();
-        }
-        Err(_) => return Err(ErrorInternalServerError("unable to get replies")),
-    }
-
-    let pics: Vec<PicPub>;
-
-    let pics_res = get_all_pics(&pool, &review_request.review_id).await;
-
-    match pics_res {
-        Ok(pics_tmp) => {
-            pics = pics_tmp
-                .into_iter()
-                .map(|f| -> PicPub { f.into() })
-                .collect();
+    match compound_review_res {
+        Ok(compound_review) => {
+            return Ok(Json(compound_review));
         }
         Err(_) => {
-            return Err(ErrorInternalServerError("unable to get pics"));
+            return Err(ErrorInternalServerError(
+                "failed to gather review components",
+            ))
         }
     }
-
-    return Ok(Json(CompoundReviewPub {
-        review,
-        likes,
-        replies,
-        pics,
-    }));
 }
