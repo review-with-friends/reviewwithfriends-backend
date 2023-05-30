@@ -2236,6 +2236,7 @@ dependencies = [
  "futures-util",
  "images",
  "jwt",
+ "lazy_static",
  "moka",
  "openssl",
  "opentelemetry",

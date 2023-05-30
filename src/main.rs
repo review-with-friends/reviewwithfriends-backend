@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate lazy_static;
+
 use crate::user_v1::update_user_device_token;
 use actix_cors::Cors;
 use actix_web::{
@@ -81,6 +84,7 @@ pub struct Config {
     apn_key: APNSigningKey,
     sendgrid_key: String,
     github_key: String,
+    dev: bool,
 }
 
 const PIC_CONFIG_LIMIT: usize = 4_262_144;
@@ -251,10 +255,8 @@ async fn main() -> std::io::Result<()> {
 
 /// Fetch build configs from environment variable
 fn build_config() -> Config {
-    let is_dev = env::var("MOB_DEV");
-
-    match is_dev {
-        Ok(_) => Config {
+    if is_dev() {
+        Config {
             twilio_key: String::from("123"),
             db_connection_string: env::var("DATABASE_URL").unwrap(),
             signing_keys: encode_jwt_secret("thisisatestkey"),
@@ -264,8 +266,10 @@ fn build_config() -> Config {
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
             sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
             github_key: env::var("GITHUB_KEY").unwrap(),
-        },
-        Err(_) => Config {
+            dev: true,
+        }
+    } else {
+        Config {
             twilio_key: env::var("TWILIO").unwrap(),
             db_connection_string: env::var("DB_CONNECTION").unwrap(),
             signing_keys: encode_jwt_secret(&env::var("JWT_KEY").unwrap()),
@@ -275,7 +279,17 @@ fn build_config() -> Config {
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
             sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
             github_key: env::var("GITHUB_KEY").unwrap(),
-        },
+            dev: false,
+        }
+    }
+}
+
+pub fn is_dev() -> bool {
+    let is_dev = env::var("MOB_DEV");
+
+    match is_dev {
+        Ok(_) => true,
+        Err(_) => false,
     }
 }
 
