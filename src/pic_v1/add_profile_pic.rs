@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{create_pic, get_user, update_user_pic_id},
+    pic_v1::TARGET_DO_BUCKET,
 };
 use actix_web::{
     post,
@@ -61,7 +62,7 @@ pub async fn add_profile_pic(
             if let Err(_) = s3_client
                 .put_object(PutObjectRequest {
                     body: Some(ByteStream::from(<Vec<u8>>::from(pic_bytes))),
-                    bucket: "bout".to_string(),
+                    bucket: TARGET_DO_BUCKET.to_string(),
                     key: pic.id.clone(),
                     acl: Some("public-read".to_string()),
                     ..Default::default()

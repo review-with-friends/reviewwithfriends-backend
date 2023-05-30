@@ -1,8 +1,21 @@
-use crate::db::Pic;
+use crate::{db::Pic, is_dev};
 use serde::Serialize;
 
+lazy_static! {
+    pub static ref TARGET_DO_BUCKET: &'static str = {
+        if is_dev() {
+            "review-with-friends-dev"
+        } else {
+            "bout"
+        }
+    };
+}
+
 pub fn get_digital_ocean_url(pic_id: &str) -> String {
-    format!("https://bout.sfo3.cdn.digitaloceanspaces.com/{}", pic_id)
+    format!(
+        "https://{}.sfo3.cdn.digitaloceanspaces.com/{}",
+        *TARGET_DO_BUCKET, pic_id
+    )
 }
 
 /// DB Types are purposefuly not serialized.

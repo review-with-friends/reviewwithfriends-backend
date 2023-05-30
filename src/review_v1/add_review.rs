@@ -9,6 +9,7 @@ use crate::{
     notifications_v1::{
         enqueue_notification, NotificationQueue, NotificationQueueItem, NotificationType,
     },
+    pic_v1::TARGET_DO_BUCKET,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -214,7 +215,7 @@ async fn upload_and_store_pics(
                     if let Err(_) = s3_client
                         .put_object(PutObjectRequest {
                             body: Some(ByteStream::from(bytes)),
-                            bucket: "bout".to_string(),
+                            bucket: TARGET_DO_BUCKET.to_string(),
                             key: pic.id.clone(),
                             acl: Some("public-read".to_string()),
                             ..Default::default()
