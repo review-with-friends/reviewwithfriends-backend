@@ -64,7 +64,7 @@ pub struct PhoneAuth {
     pub code: String,
 
     /// Whether the PhoneAuth was used for login.
-    pub used: bool,
+    pub used: i8,
 }
 
 impl From<&MySqlRow> for PhoneAuth {
@@ -146,7 +146,7 @@ pub struct FriendRequest {
     pub friend_id: String,
 
     /// friend_id is able to mark this request as ignored.
-    pub ignored: bool,
+    pub ignored: i8,
 }
 
 impl From<&MySqlRow> for FriendRequest {
@@ -226,7 +226,10 @@ pub struct Review {
     pub longitude: f64,
 
     // custom locations
-    pub is_custom: bool,
+    pub is_custom: i8,
+
+    // whether delivery or not
+    pub delivered: i8,
 }
 
 impl From<&MySqlRow> for Review {
@@ -242,6 +245,7 @@ impl From<&MySqlRow> for Review {
             latitude: row.get("latitude"),
             longitude: row.get("longitude"),
             is_custom: row.get("is_custom"),
+            delivered: row.get("delivered"),
         }
     }
 }
@@ -258,10 +262,10 @@ pub struct ReviewAnnotation {
     pub created: NaiveDateTime,
 
     /// Id of the associated pic record.
-    pub pic_id: String,
+    pub pic_id: Option<String>,
 
     /// Where to find the pic.
-    pub pic_handler: u8,
+    pub pic_handler: Option<u8>,
 
     // category of the review, i.e. restaurant or cafe
     pub category: String,
@@ -276,7 +280,7 @@ pub struct ReviewAnnotation {
     pub longitude: f64,
 
     // custom locations
-    pub is_custom: bool,
+    pub is_custom: i8,
 }
 
 impl From<&MySqlRow> for ReviewAnnotation {

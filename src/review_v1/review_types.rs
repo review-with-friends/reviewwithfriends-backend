@@ -33,7 +33,7 @@ impl From<Review> for ReviewPub {
             location_name: review.location_name,
             latitude: review.latitude,
             longitude: review.longitude,
-            is_custom: review.is_custom,
+            is_custom: false,
         }
     }
 }
@@ -65,13 +65,16 @@ impl From<ReviewAnnotation> for ReviewAnnotationPub {
             created: review.created.timestamp_millis(),
             text: "".to_string(),
             stars: 5,
-            pic_id: review.pic_id.clone(),
-            pic_url: PicPub::get_url(&review.pic_id, review.pic_handler),
+            pic_id: (review.pic_id.clone()).unwrap_or("".to_string()),
+            pic_url: PicPub::get_url(
+                &review.pic_id.unwrap_or("".to_string()),
+                review.pic_handler.unwrap_or(0),
+            ),
             category: review.category,
             location_name: review.location_name,
             latitude: review.latitude,
             longitude: review.longitude,
-            is_custom: review.is_custom,
+            is_custom: false,
         }
     }
 }
