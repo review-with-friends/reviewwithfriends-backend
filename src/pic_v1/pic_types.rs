@@ -2,7 +2,7 @@ use crate::{db::Pic, is_dev};
 use serde::Serialize;
 
 lazy_static! {
-    static ref TARGET_DO_BUCKET: &'static str = {
+    pub static ref TARGET_DO_BUCKET: &'static str = {
         if is_dev() {
             "review-with-friends-dev"
         } else {

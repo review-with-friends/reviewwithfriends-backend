@@ -3,6 +3,8 @@ use sqlx::MySqlPool;
 
 use crate::db::delete_pic;
 
+use super::TARGET_DO_BUCKET;
+
 pub async fn best_effort_delete_pic(s3_client: &S3Client, pool: &MySqlPool, pic_id: &str) {
     if pic_id == DEFAULT_PIC_ID {
         return; // dont cleanup our default image :D
@@ -10,7 +12,7 @@ pub async fn best_effort_delete_pic(s3_client: &S3Client, pool: &MySqlPool, pic_
 
     if let Ok(_) = s3_client
         .delete_object(DeleteObjectRequest {
-            bucket: "bout".to_string(),
+            bucket: TARGET_DO_BUCKET.to_string(),
             key: pic_id.to_string(),
             ..Default::default()
         })

@@ -84,7 +84,6 @@ pub struct Config {
     apn_key: APNSigningKey,
     sendgrid_key: String,
     github_key: String,
-    dev: bool,
 }
 
 const PIC_CONFIG_LIMIT: usize = 4_262_144;
@@ -266,7 +265,6 @@ fn build_config() -> Config {
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
             sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
             github_key: env::var("GITHUB_KEY").unwrap(),
-            dev: true,
         }
     } else {
         Config {
@@ -279,7 +277,6 @@ fn build_config() -> Config {
             apn_key: encode_apn_jwt_secret(&env::var("APN_KEY").unwrap()),
             sendgrid_key: env::var("SENDGRID_KEY").unwrap(),
             github_key: env::var("GITHUB_KEY").unwrap(),
-            dev: false,
         }
     }
 }
