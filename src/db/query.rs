@@ -1,5 +1,5 @@
 use chrono::Duration;
-use sqlx::{types::chrono::Utc, Error, MySqlPool, Row};
+use sqlx::{types::chrono::Utc, Error, MySqlPool};
 
 use super::{
     AuthAttempt, ExpandedNotification, Friend, FriendRequest, Like, PhoneAuth, Pic, Reply, Review,
@@ -29,85 +29,80 @@ pub async fn get_ping(client: &MySqlPool, id: &str) -> Result<String, Error> {
 
 /// Tries to get a user by `user.id`, and will return `None` if not found.
 pub async fn get_user(client: &MySqlPool, id: &str) -> Result<Option<User>, Error> {
-    let row_opt = sqlx::query(
+    let user = sqlx::query_as!(
+        User,
         "SELECT *
         FROM   user
         WHERE  id = ? ",
+        id
     )
-    .bind(id)
     .fetch_optional(client)
     .await?;
 
-    if let Some(row) = row_opt {
-        return Ok(Some((&row).into()));
-    } else {
-        return Ok(None);
-    }
+    return Ok(user);
 }
 
 /// Tries to get a user by exact `user.name`, and will return `None` if not found.
 pub async fn get_user_from_name(client: &MySqlPool, name: &str) -> Result<Option<User>, Error> {
-    let row_opt = sqlx::query(
+    let user = sqlx::query_as!(
+        User,
         "SELECT *
         FROM   user
         WHERE  name = ? ",
+        name
     )
-    .bind(name)
     .fetch_optional(client)
     .await?;
 
-    if let Some(row) = row_opt {
-        return Ok(Some((&row).into()));
-    } else {
-        return Ok(None);
-    }
+    return Ok(user);
 }
 
 /// Gets a list of users from the given `user.name`.
 /// This search is a trailing wildcard and limits to top 50 results.
 pub async fn search_user_from_name(client: &MySqlPool, name: &str) -> Result<Vec<User>, Error> {
     let search_term = format!("{}%", name.replace("%", ""));
-    let rows = sqlx::query(
+    let users = sqlx::query_as!(
+        User,
         "SELECT *
         FROM   user
         WHERE  name LIKE ?
         LIMIT  50 ",
+        search_term,
     )
-    .bind(search_term)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<User> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(users);
 }
 
 /// Gets the existence of a user by `user.id`. True if exists, false if not.
 pub async fn does_user_exist(client: &MySqlPool, id: &str) -> Result<bool, Error> {
-    let row = sqlx::query(
+    let users = sqlx::query_as!(
+        User,
         "SELECT *
         FROM   user
         WHERE  id = ? ",
+        id
     )
-    .bind(id)
     .fetch_all(client)
     .await?;
 
-    return Ok(row.len() == 1);
+    return Ok(users.len() == 1);
 }
 
 /// Gets the existence of a user by `user.name`. True if exists, false if not.
 pub async fn does_user_exist_by_name(client: &MySqlPool, name: &str) -> Result<bool, Error> {
-    let row = sqlx::query(
+    let users = sqlx::query_as!(
+        User,
         "SELECT *
         FROM   user
         WHERE  name = ? ",
+        name
     )
-    .bind(name)
     .fetch_all(client)
     .await?;
 
-    return Ok(row.len() == 1);
+    return Ok(users.len() == 1);
 }
 
 /// Gets a given user by `user.phone`, and will return `None` if not found.
@@ -131,21 +126,20 @@ pub async fn get_current_phoneauths(
     client: &MySqlPool,
     phone: &str,
 ) -> Result<Vec<PhoneAuth>, Error> {
-    let rows = sqlx::query(
+    let phone_auths = sqlx::query_as!(
+        PhoneAuth,
         "SELECT *
         FROM   phoneauth
         WHERE  created > ?
                AND phone = ?
-               AND used = false ",
+               AND used = false",
+        Utc::now().naive_utc() - Duration::hours(1),
+        phone
     )
-    .bind(Utc::now().naive_utc() - Duration::hours(1))
-    .bind(phone)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<PhoneAuth> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(phone_auths);
 }
 
 /// Gets the current authattempts for a given `authattempt.phone` in the last 1 hour of `authattempt.created`.
@@ -153,20 +147,19 @@ pub async fn get_phoneauth_attempts(
     client: &MySqlPool,
     phone: &str,
 ) -> Result<Vec<AuthAttempt>, Error> {
-    let rows = sqlx::query(
+    let auth_attempts = sqlx::query_as!(
+        AuthAttempt,
         "SELECT *
         FROM   authattempt
         WHERE  created > ?
             AND phone = ? ",
+        Utc::now().naive_utc() - Duration::hours(1),
+        phone
     )
-    .bind(Utc::now().naive_utc() - Duration::hours(1))
-    .bind(phone)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<AuthAttempt> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(auth_attempts);
 }
 
 /// Gets the users current incoming friend requests that `friendrequest.ignored` is false.
@@ -174,19 +167,18 @@ pub async fn get_incoming_friend_requests(
     client: &MySqlPool,
     user_id: &str,
 ) -> Result<Vec<FriendRequest>, Error> {
-    let rows = sqlx::query(
+    let friend_requests = sqlx::query_as!(
+        FriendRequest,
         "SELECT *
         FROM   friendrequest
         WHERE  friend_id = ?
             AND ignored = false ",
+        user_id
     )
-    .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<FriendRequest> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(friend_requests);
 }
 
 /// Gets the users current incoming friend requests that can be accepted. This included requests that have been ignored.
@@ -194,18 +186,17 @@ pub async fn get_acceptable_friend_requests(
     client: &MySqlPool,
     user_id: &str,
 ) -> Result<Vec<FriendRequest>, Error> {
-    let rows = sqlx::query(
+    let friend_requests = sqlx::query_as!(
+        FriendRequest,
         "SELECT *
         FROM   friendrequest
         WHERE  friend_id = ? ",
+        user_id
     )
-    .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<FriendRequest> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(friend_requests);
 }
 
 /// Gets the users current incoming friend requests that `friendrequest.ignored` is true.
@@ -213,19 +204,18 @@ pub async fn get_incoming_ignored_friend_requests(
     client: &MySqlPool,
     user_id: &str,
 ) -> Result<Vec<FriendRequest>, Error> {
-    let rows = sqlx::query(
+    let friend_requests = sqlx::query_as!(
+        FriendRequest,
         "SELECT *
         FROM   friendrequest
         WHERE  friend_id = ?
             AND ignored = true ",
+        user_id
     )
-    .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<FriendRequest> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(friend_requests);
 }
 
 /// Gets the users outgoing friend requests.
@@ -233,53 +223,48 @@ pub async fn get_outgoing_friend_requests(
     client: &MySqlPool,
     user_id: &str,
 ) -> Result<Vec<FriendRequest>, Error> {
-    let rows = sqlx::query(
+    let friend_requests = sqlx::query_as!(
+        FriendRequest,
         "SELECT *
         FROM   friendrequest
         WHERE  user_id = ? ",
+        user_id
     )
-    .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<FriendRequest> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(friend_requests);
 }
 
 /// Gets the users current friends list.
 /// Not paged.
 pub async fn get_current_friends(client: &MySqlPool, user_id: &str) -> Result<Vec<Friend>, Error> {
-    let rows = sqlx::query(
+    let friends = sqlx::query_as!(
+        Friend,
         "SELECT *
         FROM   friend
         WHERE  user_id = ? ",
+        user_id
     )
-    .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Friend> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(friends);
 }
 
 /// Gets a pic record for a specific id, will return `None` if it doesn't exists.
 pub async fn get_pic(client: &MySqlPool, id: &str) -> Result<Option<Pic>, Error> {
-    let row_opt = sqlx::query(
+    let pic_opt = sqlx::query_as!(
+        Pic,
         "SELECT *
         FROM   pic
         WHERE  id = ? ",
+        id
     )
-    .bind(id)
     .fetch_optional(client)
     .await?;
 
-    if let Some(row) = row_opt {
-        return Ok(Some((&row).into()));
-    } else {
-        return Ok(None);
-    }
+    return Ok(pic_opt);
 }
 
 /// Gets a single review for the given review_id.
@@ -289,7 +274,8 @@ pub async fn get_review(
     user_id: &str,
     review_id: &str,
 ) -> Result<Option<Review>, Error> {
-    let row_opt = sqlx::query(
+    let review_opt = sqlx::query_as!(
+        Review,
         "SELECT r1.id,
         r1.user_id,
         r1.created,
@@ -299,7 +285,8 @@ pub async fn get_review(
         r1.location_name,
         ST_X(r1.location) as longitude,
         ST_Y(r1.location) as latitude,
-        r1.is_custom
+        r1.is_custom,
+        r1.delivered
         FROM   review AS r1
                INNER JOIN friend AS f1
                        ON f1.friend_id = r1.user_id
@@ -315,23 +302,20 @@ pub async fn get_review(
         r2.location_name,
         ST_X(r2.location) as longitude,
         ST_Y(r2.location) as latitude,
-        r2.is_custom
+        r2.is_custom,
+        r2.delivered
         FROM   review AS r2
         WHERE  r2.user_id = ?
                AND r2.id = ? ",
+        user_id,
+        review_id,
+        user_id,
+        review_id
     )
-    .bind(user_id)
-    .bind(review_id)
-    .bind(user_id)
-    .bind(review_id)
     .fetch_optional(client)
     .await?;
 
-    if let Some(row) = row_opt {
-        return Ok(Some((&row).into()));
-    } else {
-        return Ok(None);
-    }
+    return Ok(review_opt);
 }
 
 /// Gets all reviews from a given name, latitude, and longitude combination.
@@ -343,9 +327,10 @@ pub async fn get_reviews_from_location(
     name: &str,
     latitude: f64,
     longitude: f64,
-) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Review>, Error> {
     const ACCURACY_SIZE: f64 = 0.001;
-    let rows = sqlx::query(
+    let reviews = sqlx::query_as!(
+        Review,
         "SELECT r.id,
         r.user_id,
         r.created,
@@ -355,25 +340,24 @@ pub async fn get_reviews_from_location(
         r.location_name,
         ST_X(r.location) as longitude,
         ST_Y(r.location) as latitude,
-        r.is_custom
+        r.is_custom,
+        r.delivered
         FROM   review AS r
                INNER JOIN friend AS f
                        ON r.user_id = f.friend_id
         WHERE  f.user_id = ?
                AND r.location_name = ?
                AND ST_Contains(ST_Buffer(POINT(?, ?), ?), r.location) = 1",
+        user_id,
+        name,
+        longitude,
+        latitude,
+        ACCURACY_SIZE
     )
-    .bind(user_id)
-    .bind(name)
-    .bind(longitude)
-    .bind(latitude)
-    .bind(ACCURACY_SIZE)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(reviews);
 }
 
 /// Gets all reviews from a user.
@@ -383,12 +367,13 @@ pub async fn get_reviews_from_user(
     user_id: &str,
     target_user_id: &str,
     page: u32,
-) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Review>, Error> {
     const PAGE_SIZE: u32 = 5;
 
     let lower_count = page * PAGE_SIZE;
 
-    let rows = sqlx::query(
+    let reviews = sqlx::query_as!(
+        Review,
         "SELECT r.id,
         r.user_id,
         r.created,
@@ -398,7 +383,8 @@ pub async fn get_reviews_from_user(
         r.location_name,
         ST_X(r.location) as longitude,
         ST_Y(r.location) as latitude,
-        r.is_custom
+        r.is_custom,
+        r.delivered
         FROM   review AS r
                INNER JOIN friend AS f
                        ON r.user_id = f.friend_id
@@ -406,17 +392,15 @@ pub async fn get_reviews_from_user(
             AND r.user_id = ?
         ORDER BY r.created DESC
         LIMIT  ? offset ? ",
+        user_id,
+        target_user_id,
+        PAGE_SIZE,
+        lower_count
     )
-    .bind(user_id)
-    .bind(target_user_id)
-    .bind(PAGE_SIZE)
-    .bind(lower_count)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(reviews);
 }
 
 /// Gets reviews from a given bounding box.
@@ -430,11 +414,12 @@ pub async fn get_reviews_from_bounds(
     longitude_west: f64,
     longitude_east: f64,
     page: u32,
-) -> Result<Vec<ReviewAnnotation>, Box<dyn std::error::Error>> {
+) -> Result<Vec<ReviewAnnotation>, Error> {
     const PAGE_SIZE: u32 = 100;
     let lower_count = page * PAGE_SIZE;
 
-    let rows = sqlx::query(
+    let annotations = sqlx::query_as!(
+        ReviewAnnotation,
         "SELECT r.id,
         r.user_id,
         r.created,
@@ -456,20 +441,18 @@ pub async fn get_reviews_from_bounds(
  WHERE  f.user_id = ?
         AND St_contains(St_makeenvelope(Point(?, ?), Point(?, ?)), r.location)
  LIMIT  ? offset ? ",
+        user_id,
+        longitude_west,
+        latitude_north,
+        longitude_east,
+        latitude_south,
+        PAGE_SIZE,
+        lower_count
     )
-    .bind(user_id)
-    .bind(longitude_west)
-    .bind(latitude_north)
-    .bind(longitude_east)
-    .bind(latitude_south)
-    .bind(PAGE_SIZE)
-    .bind(lower_count)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<ReviewAnnotation> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(annotations);
 }
 
 /// Gets reviews from a given bounding box.
@@ -487,11 +470,12 @@ pub async fn get_reviews_from_bounds_with_exclusions(
     longitude_west_e: f64,
     longitude_east_e: f64,
     page: u32,
-) -> Result<Vec<ReviewAnnotation>, Box<dyn std::error::Error>> {
+) -> Result<Vec<ReviewAnnotation>, Error> {
     const PAGE_SIZE: u32 = 100;
     let lower_count = page * PAGE_SIZE;
 
-    let rows = sqlx::query(
+    let annotations = sqlx::query_as!(
+        ReviewAnnotation,
         "SELECT r.id,
         r.user_id,
         r.created,
@@ -515,24 +499,22 @@ pub async fn get_reviews_from_bounds_with_exclusions(
         AND NOT St_contains(St_makeenvelope(Point(?, ?), Point(?, ?)),
                 r.location)
  LIMIT  ? offset ? ",
+        user_id,
+        longitude_west,
+        latitude_north,
+        longitude_east,
+        latitude_south,
+        longitude_west_e,
+        latitude_north_e,
+        longitude_east_e,
+        latitude_south_e,
+        PAGE_SIZE,
+        lower_count
     )
-    .bind(user_id)
-    .bind(longitude_west)
-    .bind(latitude_north)
-    .bind(longitude_east)
-    .bind(latitude_south)
-    .bind(longitude_west_e)
-    .bind(latitude_north_e)
-    .bind(longitude_east_e)
-    .bind(latitude_south_e)
-    .bind(PAGE_SIZE)
-    .bind(lower_count)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<ReviewAnnotation> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(annotations);
 }
 
 /// Fetches latest reviews from a given page.
@@ -542,12 +524,13 @@ pub async fn get_latest_reviews(
     client: &MySqlPool,
     user_id: &str,
     page: u32,
-) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Review>, Error> {
     const PAGE_SIZE: u32 = 5;
 
     let lower_count = page * PAGE_SIZE;
 
-    let rows = sqlx::query(
+    let reviews = sqlx::query_as!(
+        Review,
         "SELECT r.id,
         r.user_id,
         r.created,
@@ -557,23 +540,22 @@ pub async fn get_latest_reviews(
         r.location_name,
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
-        r.is_custom
+        r.is_custom,
+        r.delivered
  FROM   review AS r
         INNER JOIN friend AS f
                 ON r.user_id = f.friend_id
  WHERE  f.user_id = ?
  ORDER  BY r.created DESC
  LIMIT  ? offset ? ",
+        user_id,
+        PAGE_SIZE,
+        lower_count
     )
-    .bind(user_id)
-    .bind(PAGE_SIZE)
-    .bind(lower_count)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(reviews);
 }
 
 /// Fetches latest reviews from a given page.
@@ -584,12 +566,13 @@ pub async fn search_latest_reviews(
     user_id: &str,
     search_prefix: &str,
     page: u32,
-) -> Result<Vec<Review>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Review>, Error> {
     const PAGE_SIZE: u32 = 5;
     let lower_count = page * PAGE_SIZE;
     let search_term = format!("{}%", search_prefix.replace("%", ""));
 
-    let rows = sqlx::query(
+    let reviews = sqlx::query_as!(
+        Review,
         "SELECT r.id,
         r.user_id,
         r.created,
@@ -599,7 +582,8 @@ pub async fn search_latest_reviews(
         r.location_name,
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
-        r.is_custom
+        r.is_custom,
+        r.delivered
  FROM   review AS r
         INNER JOIN friend AS f
                 ON r.user_id = f.friend_id
@@ -607,17 +591,15 @@ pub async fn search_latest_reviews(
  AND r.location_name LIKE ?
  ORDER  BY r.created DESC
  LIMIT  ? offset ? ",
+        user_id,
+        search_term,
+        PAGE_SIZE,
+        lower_count
     )
-    .bind(user_id)
-    .bind(search_term)
-    .bind(PAGE_SIZE)
-    .bind(lower_count)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(reviews);
 }
 
 /// Gets all likes for a given review.
@@ -639,7 +621,8 @@ pub async fn get_liked_reviews(
     const PAGE_SIZE: u32 = 5;
     let lower_count = page * PAGE_SIZE;
 
-    let rows = sqlx::query(
+    let reviews = sqlx::query_as!(
+        Review,
         "SELECT r.id,
             r.user_id,
             r.created,
@@ -649,22 +632,21 @@ pub async fn get_liked_reviews(
             r.location_name,
             St_x(r.location) AS longitude,
             St_y(r.location) AS latitude,
-            r.is_custom
+            r.is_custom,
+            r.delivered
             FROM   review as r
         INNER JOIN likes as l on r.id = l.review_id
             WHERE  l.user_id = ?
         ORDER  BY l.created DESC
         LIMIT  ? offset ? ",
+        user_id,
+        PAGE_SIZE,
+        lower_count
     )
-    .bind(user_id)
-    .bind(PAGE_SIZE)
-    .bind(lower_count)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Review> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(reviews);
 }
 
 /// Gets whether a specific review is already liked by a user.
@@ -673,52 +655,51 @@ pub async fn is_already_liked(
     user_id: &str,
     review_id: &str,
 ) -> Result<bool, Error> {
-    let rows = sqlx::query(
+    let likes = sqlx::query_as!(
+        Like,
         "SELECT *
         FROM   likes
         WHERE  review_id = ?
             AND user_id = ? ",
+        review_id,
+        user_id
     )
-    .bind(review_id)
-    .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    return Ok(rows.len() > 0);
+    return Ok(likes.len() > 0);
 }
 
 /// Gets all the replies for a given review.
 /// ## Does not validate the review is able to be viewed by calling user.
 pub async fn get_all_replies(client: &MySqlPool, review_id: &str) -> Result<Vec<Reply>, Error> {
-    let rows = sqlx::query(
+    let replies = sqlx::query_as!(
+        Reply,
         "SELECT *
         FROM   reply
         WHERE  review_id = ? ",
+        review_id
     )
-    .bind(review_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Reply> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(replies);
 }
 
 /// Gets all the pics for a given review.
 /// ## Does not validate the review is able to be viewed by calling user.
 pub async fn get_all_pics(client: &MySqlPool, review_id: &str) -> Result<Vec<Pic>, Error> {
-    let rows = sqlx::query(
+    let pics = sqlx::query_as!(
+        Pic,
         "SELECT *
         FROM   pic
         WHERE  review_id = ? ",
+        review_id
     )
-    .bind(review_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<Pic> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(pics);
 }
 
 /// Gets the top 50 latest notifications for the user.
@@ -726,32 +707,38 @@ pub async fn get_notifications(
     client: &MySqlPool,
     user_id: &str,
 ) -> Result<Vec<ExpandedNotification>, Error> {
-    let rows = sqlx::query(
+    let notifications = sqlx::query_as!(
+        ExpandedNotification,
         "SELECT n.id, n.created, n.review_user_id, n.user_id, n.review_id, n.action_type, r.location_name AS review_location
         FROM   notification AS n
         INNER JOIN review as r on r.id = n.review_id
     WHERE  n.review_user_id = ?
         ORDER BY n.created DESC
     LIMIT 50",
+    user_id
     )
-    .bind(user_id)
     .fetch_all(client)
     .await?;
 
-    let out: Vec<ExpandedNotification> = rows.iter().map(|row| row.into()).collect();
-
-    return Ok(out);
+    return Ok(notifications);
 }
 
 /// Gets the count of notifications the user has pending.
 pub async fn get_notification_count(client: &MySqlPool, user_id: &str) -> i64 {
-    let count_res = sqlx::query("SELECT count(*) FROM notification WHERE review_user_id = ?")
-        .bind(user_id)
-        .fetch_one(client)
-        .await;
+    struct Count {
+        count: i64,
+    }
+
+    let count_res = sqlx::query_as!(
+        Count,
+        "SELECT count(*) as count FROM notification WHERE review_user_id = ?",
+        user_id
+    )
+    .fetch_one(client)
+    .await;
 
     match count_res {
-        Ok(row) => return row.get(0),
+        Ok(count) => return count.count,
         Err(_) => return 0,
     }
 }
@@ -784,18 +771,19 @@ pub async fn are_users_friends(
     user_id: &str,
     other_user_id: &str,
 ) -> Result<bool, Error> {
-    let rows = sqlx::query(
+    let friends = sqlx::query_as!(
+        Friend,
         "SELECT *
         FROM   friend
         WHERE  user_id = ?
             AND friend_id = ? ",
+        user_id,
+        other_user_id
     )
-    .bind(user_id)
-    .bind(other_user_id)
     .fetch_all(client)
     .await?;
 
-    return Ok(rows.len() > 0);
+    return Ok(friends.len() > 0);
 }
 
 /// Gets a reply with a specific Id from a specific review.
@@ -804,20 +792,17 @@ pub async fn get_reply(
     review_id: &str,
     reply_id: &str,
 ) -> Result<Option<Reply>, Error> {
-    let row_opt = sqlx::query(
+    let reply = sqlx::query_as!(
+        Reply,
         "SELECT *
         FROM   reply
         WHERE  id = ?
             AND review_id = ?",
+        reply_id,
+        review_id
     )
-    .bind(reply_id)
-    .bind(review_id)
     .fetch_optional(client)
     .await?;
 
-    if let Some(row) = row_opt {
-        return Ok(Some((&row).into()));
-    } else {
-        return Ok(None);
-    }
+    return Ok(reply);
 }

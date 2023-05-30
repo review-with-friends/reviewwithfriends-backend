@@ -42,6 +42,7 @@ pub struct AddReviewRequest {
     pub longitude: f64,
     pub is_custom: bool,
     pub post_date: Option<i64>,
+    pub delivered: Option<bool>,
 }
 
 /// Allows the user to create a review for a specific place.
@@ -262,6 +263,7 @@ fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
         location_name: request.location_name.clone(),
         latitude: request.latitude,
         longitude: request.longitude,
-        is_custom: request.is_custom,
+        is_custom: request.is_custom as i8,
+        delivered: request.delivered.unwrap_or(false) as i8,
     }
 }
