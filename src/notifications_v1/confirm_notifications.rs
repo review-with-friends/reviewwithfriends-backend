@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db};
+use crate::{authorization::AuthenticatedUser, db, tracing::add_error_span};
 use actix_web::{
     error::ErrorInternalServerError,
     post,
@@ -19,10 +19,11 @@ pub async fn confirm_notifications(
         Ok(_) => {
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "unable confirm notifications".to_string(),
-            ))
+            ));
         }
     }
 }

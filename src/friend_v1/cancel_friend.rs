@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{cancel_friend_request, get_outgoing_friend_requests},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -42,16 +43,20 @@ pub async fn cancel_friend(
 
                 match cancel_res {
                     Ok(_) => Ok(HttpResponse::Ok()),
-                    Err(_) => Err(ErrorInternalServerError("failed cancelling friend request")),
+                    Err(error) => {
+                        add_error_span(&error);
+                        Err(ErrorInternalServerError("failed cancelling friend request"))
+                    }
                 }
             } else {
                 return Err(ErrorBadRequest("friend request doesnt exist"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "could not fetch incoming friend requests",
-            ))
+            ));
         }
     }
 }

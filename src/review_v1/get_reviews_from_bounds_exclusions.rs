@@ -1,6 +1,6 @@
 use crate::{
     authorization::AuthenticatedUser, db::get_reviews_from_bounds_with_exclusions,
-    review_v1::ReviewAnnotationPub,
+    review_v1::ReviewAnnotationPub, tracing::add_error_span,
 };
 use actix_web::{
     error::ErrorInternalServerError,
@@ -54,6 +54,11 @@ pub async fn get_reviews_from_map_bounds_with_exclusions(
                 .collect();
             Ok(Json(reviews_pub))
         }
-        Err(err) => return Err(ErrorInternalServerError(err.to_string())),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError(
+                "failed to fetch review annotations",
+            ));
+        }
     }
 }

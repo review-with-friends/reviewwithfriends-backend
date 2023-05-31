@@ -10,6 +10,7 @@ use crate::{
         enqueue_notification, NotificationQueue, NotificationQueueItem, NotificationType,
     },
     pic_v1::TARGET_DO_BUCKET,
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -130,10 +131,13 @@ pub async fn add_review(
 
                     return Ok(HttpResponse::Ok().json(ReviewPub::from(review)));
                 }
-                Err(err) => return Err(ErrorInternalServerError(err)),
+                Err(error) => {
+                    return Err(ErrorInternalServerError(error));
+                }
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("failed to create review"));
         }
     }

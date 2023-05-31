@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db::update_device_token};
+use crate::{authorization::AuthenticatedUser, db::update_device_token, tracing::add_error_span};
 use actix_web::{
     error::ErrorInternalServerError,
     post,
@@ -24,6 +24,9 @@ pub async fn update_user_device_token(
 
     match update_res {
         Ok(_) => return Ok(HttpResponse::Ok().finish()),
-        Err(_) => return Err(ErrorInternalServerError("failed to update user")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("failed to update user"));
+        }
     }
 }

@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db::update_recovery_email};
+use crate::{authorization::AuthenticatedUser, db::update_recovery_email, tracing::add_error_span};
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
     post,
@@ -29,6 +29,9 @@ pub async fn update_user_recovery_email(
 
     match update_res {
         Ok(_) => return Ok(HttpResponse::Ok().finish()),
-        Err(_) => return Err(ErrorInternalServerError("failed to update user")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("failed to update user"));
+        }
     }
 }

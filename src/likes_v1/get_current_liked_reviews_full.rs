@@ -3,6 +3,7 @@ use crate::{
     compound_types::CompoundReviewPub,
     db::get_liked_reviews,
     review_v1::{gather_compound_review, ReviewPub},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::ErrorInternalServerError,
@@ -50,7 +51,10 @@ pub async fn get_current_liked_reviews_full(
                 }
             }
         }
-        Err(_) => return Err(ErrorInternalServerError("unable to get likes".to_string())),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to get likes".to_string()));
+        }
     }
 
     return Ok(Json(compound_reviews));

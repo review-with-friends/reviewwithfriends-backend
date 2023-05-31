@@ -5,6 +5,7 @@ use crate::{
         enqueue_notification, ActionType, NotificationQueue, NotificationQueueItem,
         NotificationType,
     },
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -39,14 +40,19 @@ pub async fn add_reply(
     let review_res = get_review(&pool, &authenticated_user.0, &add_reply_request.review_id).await;
 
     let review: Review;
-    if let Ok(review_opt) = review_res {
-        if let Some(review_tmp) = review_opt {
-            review = review_tmp;
-        } else {
-            return Err(ErrorBadRequest("unable to find review".to_string()));
+
+    match review_res {
+        Ok(review_opt) => {
+            if let Some(review_tmp) = review_opt {
+                review = review_tmp;
+            } else {
+                return Err(ErrorBadRequest("unable to find review".to_string()));
+            }
         }
-    } else {
-        return Err(ErrorInternalServerError("unable to get review".to_string()));
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to get review".to_string()));
+        }
     }
 
     let reply_res = create_reply(
@@ -76,7 +82,10 @@ pub async fn add_reply(
 
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => return Err(ErrorInternalServerError("unable create reply".to_string())),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable create reply".to_string()));
+        }
     }
 }
 

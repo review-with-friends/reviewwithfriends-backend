@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db::search_user_from_name};
+use crate::{authorization::AuthenticatedUser, db::search_user_from_name, tracing::add_error_span};
 use actix_web::{
     error::ErrorInternalServerError,
     get,
@@ -33,6 +33,9 @@ pub async fn search_user_by_name(
                 .collect();
             Ok(Json(friend_requests_pub))
         }
-        Err(_) => return Err(ErrorInternalServerError("could not complete user search")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("could not complete user search"));
+        }
     }
 }

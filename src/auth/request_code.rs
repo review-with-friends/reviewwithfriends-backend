@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     db::{create_phoneauth, create_user, get_current_phoneauths, get_user_by_phone, User},
+    tracing::add_error_span,
     Config,
 };
 use actix_web::{
@@ -56,7 +57,10 @@ pub async fn request_code(
                 return Err(ErrorBadRequest("too many auth attempts"));
             }
         }
-        Err(_) => return Err(ErrorInternalServerError("unable to fetch auths")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to fetch auths"));
+        }
     }
 
     let user_res = get_user_by_phone(&pool, &request_code_request.phone).await;
@@ -85,13 +89,15 @@ pub async fn request_code(
 
                 match create_res {
                     Ok(_) => {}
-                    Err(_) => {
+                    Err(error) => {
+                        add_error_span(&error);
                         return Err(ErrorInternalServerError("error creating user"));
                     }
                 }
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("error fetching user"));
         }
     };
@@ -105,7 +111,8 @@ pub async fn request_code(
 
     match phoneauth_res {
         Ok(_) => {}
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("error creating auth"));
         }
     }

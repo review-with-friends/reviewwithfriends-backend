@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db::get_user_from_name};
+use crate::{authorization::AuthenticatedUser, db::get_user_from_name, tracing::add_error_span};
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
     get,
@@ -32,6 +32,9 @@ pub async fn get_user_by_name(
                 return Err(ErrorNotFound("could not find user"));
             }
         }
-        Err(_) => return Err(ErrorInternalServerError("unable to get user".to_string())),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to get user".to_string()));
+        }
     }
 }

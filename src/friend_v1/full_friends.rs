@@ -4,6 +4,7 @@ use crate::{
         get_current_friends, get_incoming_friend_requests, get_incoming_ignored_friend_requests,
         get_outgoing_friend_requests,
     },
+    tracing::add_error_span,
 };
 use actix_web::{
     error::ErrorInternalServerError,
@@ -45,10 +46,11 @@ pub async fn full_friends(
                 .map(|f| -> FriendRequestPub { f.into() })
                 .collect();
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "could not fetch incoming ignored friend requests",
-            ))
+            ));
         }
     }
 
@@ -62,10 +64,11 @@ pub async fn full_friends(
                 .map(|f| -> FriendRequestPub { f.into() })
                 .collect();
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "could not fetch incoming friend requests",
-            ))
+            ));
         }
     }
 
@@ -79,10 +82,11 @@ pub async fn full_friends(
                 .map(|f| -> FriendRequestPub { f.into() })
                 .collect();
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "could not fetch outgoing friend requests",
-            ))
+            ));
         }
     }
 

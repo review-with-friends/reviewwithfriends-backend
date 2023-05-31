@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{get_review, update_review, Review},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
@@ -40,7 +41,8 @@ pub async fn edit_review(
                 return Err(ErrorNotFound("could not find review"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("failed to get review"));
         }
     }
@@ -78,7 +80,8 @@ pub async fn edit_review(
         Ok(_) => {
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("failed to edit review"));
         }
     }

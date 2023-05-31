@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db, db::get_user};
+use crate::{authorization::AuthenticatedUser, db, db::get_user, tracing::add_error_span};
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
     post,
@@ -22,14 +22,18 @@ pub async fn report_user(
 ) -> Result<impl Responder> {
     let user_res = get_user(&pool, &user_report_request.user_id).await;
 
-    if let Ok(target_user_opt) = user_res {
-        if target_user_opt.is_none() {
-            return Err(ErrorBadRequest("target user doesn't exist".to_string()));
+    match user_res {
+        Ok(target_user_opt) => {
+            if target_user_opt.is_none() {
+                return Err(ErrorBadRequest("target user doesn't exist".to_string()));
+            }
         }
-    } else {
-        return Err(ErrorInternalServerError(
-            "unable to get target user".to_string(),
-        ));
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError(
+                "unable to get target user".to_string(),
+            ));
+        }
     }
 
     let report_res =
@@ -38,7 +42,8 @@ pub async fn report_user(
         Ok(_) => {
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "unable to create report".to_string(),
             ));

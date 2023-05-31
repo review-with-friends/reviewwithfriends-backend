@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db};
+use crate::{authorization::AuthenticatedUser, db, tracing::add_error_span};
 use actix_web::{
     error::ErrorInternalServerError,
     get,
@@ -38,10 +38,11 @@ pub async fn get_reviews_from_user(
                 .collect();
             Ok(Json(reviews_pub))
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "unable to get reviews for location".to_string(),
-            ))
+            ));
         }
     }
 }

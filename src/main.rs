@@ -71,6 +71,7 @@ mod ratelimit;
 mod reply_v1;
 mod report_v1;
 mod review_v1;
+mod tracing;
 mod user_v1;
 
 #[derive(Clone)]

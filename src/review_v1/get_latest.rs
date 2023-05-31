@@ -1,4 +1,4 @@
-use crate::{authorization::AuthenticatedUser, db::get_latest_reviews};
+use crate::{authorization::AuthenticatedUser, db::get_latest_reviews, tracing::add_error_span};
 use actix_web::{
     error::ErrorInternalServerError,
     get,
@@ -34,10 +34,11 @@ pub async fn get_latest(
                 .collect();
             Ok(Json(reviews_pub))
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "unable to get latest reviews".to_string(),
-            ))
+            ));
         }
     }
 }

@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{get_review, remove_like},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
@@ -31,7 +32,10 @@ pub async fn unlike_review(
                 return Err(ErrorNotFound("could not find review"));
             }
         }
-        Err(_) => return Err(ErrorInternalServerError("failed to get review")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("failed to get review"));
+        }
     }
 
     let remove_res =
@@ -41,7 +45,8 @@ pub async fn unlike_review(
         Ok(_) => {
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("failed to remove like"));
         }
     }

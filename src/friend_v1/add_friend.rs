@@ -9,6 +9,7 @@ use crate::{
     notifications_v1::{
         enqueue_notification, NotificationQueue, NotificationQueueItem, NotificationType,
     },
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -43,7 +44,8 @@ pub async fn add_friend(
                 return Err(ErrorBadRequest("no user exists with that id"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorBadRequest("unable to get user"));
         }
     }
@@ -117,18 +119,25 @@ pub async fn add_friend(
 
                             return Ok(HttpResponse::Ok());
                         }
-                        Err(_) => {
-                            return Err(ErrorInternalServerError("could not create friend request"))
+                        Err(error) => {
+                            add_error_span(&error);
+                            return Err(ErrorInternalServerError(
+                                "could not create friend request",
+                            ));
                         }
                     }
                 }
-                Err(_) => return Err(ErrorInternalServerError("unable to fetch friends")),
+                Err(error) => {
+                    add_error_span(&error);
+                    return Err(ErrorInternalServerError("unable to fetch friends"));
+                }
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "unable to fetch existing requests",
-            ))
+            ));
         }
     }
 }

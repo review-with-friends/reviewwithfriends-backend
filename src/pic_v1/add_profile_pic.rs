@@ -2,6 +2,7 @@ use crate::{
     authorization::AuthenticatedUser,
     db::{create_pic, get_user, update_user_pic_id},
     pic_v1::TARGET_DO_BUCKET,
+    tracing::add_error_span,
 };
 use actix_web::{
     post,
@@ -48,7 +49,8 @@ pub async fn add_profile_pic(
                 return Ok(HttpResponse::NotFound().body("could not find user"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Ok(HttpResponse::InternalServerError().body("unable to get user"));
         }
     }
@@ -59,7 +61,7 @@ pub async fn add_profile_pic(
         Ok(pic) => {
             // We'll always put profile pics here into DO.
             // This saves a join on querying users.
-            if let Err(_) = s3_client
+            if let Err(error) = s3_client
                 .put_object(PutObjectRequest {
                     body: Some(ByteStream::from(<Vec<u8>>::from(pic_bytes))),
                     bucket: TARGET_DO_BUCKET.to_string(),
@@ -69,10 +71,12 @@ pub async fn add_profile_pic(
                 })
                 .await
             {
+                add_error_span(&error);
                 return Ok(HttpResponse::InternalServerError().body("unable to store profile pic"));
             }
 
-            if let Err(_) = update_user_pic_id(&pool, &pic.id, &authenticated_user.0).await {
+            if let Err(error) = update_user_pic_id(&pool, &pic.id, &authenticated_user.0).await {
+                add_error_span(&error);
                 return Ok(HttpResponse::InternalServerError().body("unable to save profile pic"));
             }
 
@@ -80,7 +84,8 @@ pub async fn add_profile_pic(
 
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Ok(HttpResponse::InternalServerError().body("unable to create profile pic"));
         }
     }

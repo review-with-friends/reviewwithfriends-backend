@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{get_incoming_friend_requests, ignore_friend_request},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -43,16 +44,20 @@ pub async fn ignore_friend(
 
                 match ignore_res {
                     Ok(_) => Ok(HttpResponse::Ok()),
-                    Err(_) => Err(ErrorInternalServerError("failed ignoring friend request")),
+                    Err(error) => {
+                        add_error_span(&error);
+                        Err(ErrorInternalServerError("failed ignoring friend request"))
+                    }
                 }
             } else {
                 return Err(ErrorBadRequest("friend request doesnt exist"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "could not fetch incoming friend requests",
-            ))
+            ));
         }
     }
 }

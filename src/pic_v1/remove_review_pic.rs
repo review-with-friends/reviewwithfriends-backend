@@ -2,6 +2,7 @@ use super::shared_utils::best_effort_delete_pic;
 use crate::{
     authorization::AuthenticatedUser,
     db::{get_all_pics, get_review, remove_review_pic_id, Pic, Review},
+    tracing::add_error_span,
 };
 use actix_web::{
     post,
@@ -41,7 +42,8 @@ pub async fn remove_review_pic(
                 return Ok(HttpResponse::NotFound().body("could not find review"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Ok(HttpResponse::InternalServerError().body("failed to get review"));
         }
     }
@@ -55,18 +57,23 @@ pub async fn remove_review_pic(
     let pics: Vec<Pic>;
     match pics_res {
         Ok(pics_tmp) => pics = pics_tmp,
-        Err(_) => return Ok(HttpResponse::BadRequest().body("unable to get pics")),
+        Err(error) => {
+            add_error_span(&error);
+            return Ok(HttpResponse::InternalServerError().body("unable to get pics"));
+        }
     }
 
     if !pics
         .iter()
         .any(|x| x.id == remove_review_pic_request.pic_id)
     {
-        return Ok(HttpResponse::InternalServerError().body("pic doesnt exist"));
+        return Ok(HttpResponse::BadRequest().body("pic doesnt exist"));
     }
 
-    if let Err(_) = remove_review_pic_id(&pool, &remove_review_pic_request.pic_id, &review.id).await
+    if let Err(error) =
+        remove_review_pic_id(&pool, &remove_review_pic_request.pic_id, &review.id).await
     {
+        add_error_span(&error);
         return Ok(HttpResponse::InternalServerError().body("unable to remove pic"));
     }
 

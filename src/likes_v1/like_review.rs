@@ -7,6 +7,7 @@ use crate::{
         enqueue_notification, ActionType, NotificationQueue, NotificationQueueItem,
         NotificationType,
     },
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
@@ -110,7 +111,8 @@ pub async fn like_review(
 
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("failed to like review"));
         }
     }

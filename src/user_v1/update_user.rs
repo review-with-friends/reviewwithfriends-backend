@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{does_user_exist_by_name, get_user, update_usernames, User},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError, ErrorNotFound},
@@ -40,7 +41,10 @@ pub async fn update_user(
                 return Err(ErrorNotFound("could not find user"));
             }
         }
-        Err(_) => return Err(ErrorInternalServerError("unable to get user")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to get user"));
+        }
     }
 
     if update_request.display_name.is_none() && update_request.name.is_none() {
@@ -74,7 +78,10 @@ pub async fn update_user(
                     return Err(ErrorBadRequest("user already exists"));
                 }
             }
-            Err(_) => return Err(ErrorInternalServerError("failed to get existing users")),
+            Err(error) => {
+                add_error_span(&error);
+                return Err(ErrorInternalServerError("failed to get existing users"));
+            }
         }
     }
 
@@ -83,6 +90,9 @@ pub async fn update_user(
 
     match update_res {
         Ok(_) => return Ok(HttpResponse::Ok().finish()),
-        Err(_) => return Err(ErrorInternalServerError("failed to update user")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("failed to update user"));
+        }
     }
 }
