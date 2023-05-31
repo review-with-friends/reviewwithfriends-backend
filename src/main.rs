@@ -38,7 +38,7 @@ use opentelemetry::{
 };
 use opentelemetry_otlp::WithExportConfig;
 use pic_v1::{add_profile_pic, add_review_pic, get_profile_pic, remove_review_pic};
-use ping_routes::ping;
+use ping_routes::{ping, ping_error};
 use ratelimit::RateLimit;
 use reply_v1::{add_reply, get_replies, remove_reply};
 use report_v1::{report_bug, report_user, GithubClient};
@@ -156,7 +156,7 @@ async fn main() -> std::io::Result<()> {
                     .allowed_header(http::header::CONTENT_TYPE)
                     .max_age(3600),
             )
-            .service(web::scope("/ping").service(ping))
+            .service(web::scope("/ping").service(ping).service(ping_error))
             .service(
                 web::scope("/auth")
                     .service(request_code)
