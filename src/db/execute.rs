@@ -2,6 +2,8 @@ use images::DEFAULT_PIC_ID;
 use sqlx::{types::chrono::Utc, Error, MySqlPool};
 use uuid::Uuid;
 
+use crate::db::{Notification, Report};
+
 use super::{Friend, Pic, Review, User, USER_ACTION_TYPE};
 
 /// Creates a user from the passed User struct.
@@ -11,26 +13,28 @@ use super::{Friend, Pic, Review, User, USER_ACTION_TYPE};
 pub async fn create_user(client: &MySqlPool, user: &User) -> Result<(), Error> {
     let mut trans = client.begin().await?;
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO user (id, name, display_name, phone, created, pic_id) VALUES (?,?,?,?,?,?)",
+        &user.id,
+        &user.name,
+        &user.display_name,
+        &user.phone,
+        &user.created,
+        DEFAULT_PIC_ID
     )
-    .bind(&user.id)
-    .bind(&user.name)
-    .bind(&user.display_name)
-    .bind(&user.phone)
-    .bind(&user.created)
-    .bind(DEFAULT_PIC_ID)
     .execute(&mut trans)
     .await?;
 
     // This insert is important. We assume you are friends with yourself, otherwise you can't see your own posts.
-    sqlx::query("INSERT INTO friend (id, created, user_id, friend_id) VALUES (?,?,?,?)")
-        .bind(Uuid::new_v4().to_string())
-        .bind(Utc::now().naive_utc())
-        .bind(&user.id)
-        .bind(&user.id)
-        .execute(&mut trans)
-        .await?;
+    sqlx::query!(
+        "INSERT INTO friend (id, created, user_id, friend_id) VALUES (?,?,?,?)",
+        Uuid::new_v4().to_string(),
+        Utc::now().naive_utc(),
+        &user.id,
+        &user.id,
+    )
+    .execute(&mut trans)
+    .await?;
 
     trans.commit().await?;
 
@@ -42,23 +46,24 @@ pub async fn create_user(client: &MySqlPool, user: &User) -> Result<(), Error> {
 /// ## Sets the `phoneauth.id` to `Uuid::new_v4().to_string()`
 /// ## Sets the `phoneauth.used` to `false`
 pub async fn create_phoneauth(client: &MySqlPool, phone: &str, code: &str) -> Result<(), Error> {
-    sqlx::query("INSERT INTO phoneauth (id, phone, created, ip, code, used) VALUES (?,?,?,?,?,?)")
-        .bind(Uuid::new_v4().to_string())
-        .bind(&phone)
-        .bind(Utc::now().naive_utc())
-        .bind("")
-        .bind(code)
-        .bind(false)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "INSERT INTO phoneauth (id, phone, created, ip, code, used) VALUES (?,?,?,?,?,?)",
+        Uuid::new_v4().to_string(),
+        &phone,
+        Utc::now().naive_utc(),
+        "",
+        code,
+        false
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
 
 /// Sets an `phoneauth.used` to `true` signalling it can no longer be used to generate a token.
 pub async fn update_authattempt_used(client: &MySqlPool, id: &str) -> Result<(), Error> {
-    sqlx::query("UPDATE phoneauth SET used = TRUE WHERE id = ?")
-        .bind(id)
+    sqlx::query!("UPDATE phoneauth SET used = TRUE WHERE id = ?", id)
         .execute(client)
         .await?;
 
@@ -69,12 +74,14 @@ pub async fn update_authattempt_used(client: &MySqlPool, id: &str) -> Result<(),
 /// ## Sets the `authattempt.created` to `Utc::now().naive_utc()`
 /// ## Sets the `authattempt.id` to `Uuid::new_v4().to_string()`
 pub async fn create_authattempt(client: &MySqlPool, phone: &str) -> Result<(), Error> {
-    sqlx::query("INSERT INTO authattempt (id, phone, created) VALUES (?,?,?)")
-        .bind(Uuid::new_v4().to_string())
-        .bind(&phone)
-        .bind(Utc::now().naive_utc())
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "INSERT INTO authattempt (id, phone, created) VALUES (?,?,?)",
+        Uuid::new_v4().to_string(),
+        &phone,
+        Utc::now().naive_utc()
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -85,9 +92,7 @@ pub async fn update_user_phone(
     user_id: &str,
     phone: &str,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE user SET phone = ? WHERE id = ?")
-        .bind(phone)
-        .bind(user_id)
+    sqlx::query!("UPDATE user SET phone = ? WHERE id = ?", phone, user_id)
         .execute(client)
         .await?;
 
@@ -102,13 +107,15 @@ pub async fn create_friend_request(
     user_id: &str,
     friend_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query("INSERT INTO friendrequest (id, created, user_id, friend_id, ignored) VALUES (?,?,?,?,FALSE)")
-        .bind(Uuid::new_v4().to_string())
-        .bind(Utc::now().naive_utc())
-        .bind(user_id)
-        .bind(friend_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "INSERT INTO friendrequest (id, created, user_id, friend_id, ignored) VALUES (?,?,?,?,FALSE)",
+        Uuid::new_v4().to_string(),
+        Utc::now().naive_utc(),
+        user_id,
+        friend_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -120,11 +127,13 @@ pub async fn ignore_friend_request(
     request_id: &str,
     friend_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE friendrequest SET ignored = true WHERE id = ? and friend_id = ?")
-        .bind(request_id)
-        .bind(friend_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "UPDATE friendrequest SET ignored = true WHERE id = ? and friend_id = ?",
+        request_id,
+        friend_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -150,11 +159,13 @@ pub async fn cancel_friend_request(
     request_id: &str,
     user_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query("DELETE FROM friendrequest WHERE id = ? and user_id = ?")
-        .bind(request_id)
-        .bind(user_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM friendrequest WHERE id = ? and user_id = ?",
+        request_id,
+        user_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -170,56 +181,58 @@ pub async fn accept_friend_request(
 ) -> Result<(), Error> {
     let mut trans = client.begin().await?; // encapsulate multiple actions into single transaction
 
-    sqlx::query("DELETE FROM friendrequest WHERE user_id = ? and friend_id = ?")
-        .bind(user_id)
-        .bind(friend_id)
-        .execute(&mut trans)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM friendrequest WHERE user_id = ? and friend_id = ?",
+        user_id,
+        friend_id
+    )
+    .execute(&mut trans)
+    .await?;
 
-    sqlx::query("DELETE FROM friendrequest WHERE user_id = ? and friend_id = ?")
-        .bind(friend_id)
-        .bind(user_id)
-        .execute(&mut trans)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM friendrequest WHERE user_id = ? and friend_id = ?",
+        friend_id,
+        user_id
+    )
+    .execute(&mut trans)
+    .await?;
 
-    let user_friends_rows = sqlx::query("SELECT * FROM friend where user_id = ?")
-        .bind(user_id)
+    let user_friends = sqlx::query_as!(Friend, "SELECT * FROM friend where user_id = ?", user_id)
         .fetch_all(&mut trans)
         .await?;
-
-    let user_friends: Vec<Friend> = user_friends_rows.iter().map(|row| row.into()).collect();
 
     if !user_friends
         .iter()
         .any(|uf| -> bool { return uf.friend_id == friend_id })
     {
-        sqlx::query("INSERT INTO friend (id, created, user_id, friend_id) VALUES (?,?,?,?)")
-            .bind(Uuid::new_v4().to_string())
-            .bind(Utc::now().naive_utc())
-            .bind(user_id)
-            .bind(friend_id)
-            .execute(&mut trans)
-            .await?;
+        sqlx::query!(
+            "INSERT INTO friend (id, created, user_id, friend_id) VALUES (?,?,?,?)",
+            Uuid::new_v4().to_string(),
+            Utc::now().naive_utc(),
+            user_id,
+            friend_id
+        )
+        .execute(&mut trans)
+        .await?;
     }
 
-    let user_friends_rows = sqlx::query("SELECT * FROM friend where user_id = ?")
-        .bind(friend_id)
+    let user_friends = sqlx::query_as!(Friend, "SELECT * FROM friend where user_id = ?", friend_id)
         .fetch_all(&mut trans)
         .await?;
-
-    let user_friends: Vec<Friend> = user_friends_rows.iter().map(|row| row.into()).collect();
 
     if !user_friends
         .iter()
         .any(|uf| -> bool { return uf.friend_id == user_id })
     {
-        sqlx::query("INSERT INTO friend (id, created, user_id, friend_id) VALUES (?,?,?,?)")
-            .bind(Uuid::new_v4().to_string())
-            .bind(Utc::now().naive_utc())
-            .bind(friend_id)
-            .bind(user_id)
-            .execute(&mut trans)
-            .await?;
+        sqlx::query!(
+            "INSERT INTO friend (id, created, user_id, friend_id) VALUES (?,?,?,?)",
+            Uuid::new_v4().to_string(),
+            Utc::now().naive_utc(),
+            friend_id,
+            user_id
+        )
+        .execute(&mut trans)
+        .await?;
     }
 
     trans.commit().await?; // commit this bitch
@@ -237,17 +250,21 @@ pub async fn remove_current_friend(
 ) -> Result<(), Error> {
     let mut trans = client.begin().await?;
 
-    sqlx::query("DELETE FROM friend WHERE user_id = ? and friend_id = ?")
-        .bind(user_id)
-        .bind(friend_id)
-        .execute(&mut trans)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM friend WHERE user_id = ? and friend_id = ?",
+        user_id,
+        friend_id
+    )
+    .execute(&mut trans)
+    .await?;
 
-    sqlx::query("DELETE FROM friend WHERE user_id = ? and friend_id = ?")
-        .bind(friend_id)
-        .bind(user_id)
-        .execute(&mut trans)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM friend WHERE user_id = ? and friend_id = ?",
+        friend_id,
+        user_id
+    )
+    .execute(&mut trans)
+    .await?;
 
     trans.commit().await?;
 
@@ -266,22 +283,22 @@ pub async fn create_pic(
 ) -> Result<Pic, Error> {
     let pic = Pic {
         id: Uuid::new_v4().to_string(),
-        review_id: review_id,
+        review_id,
         created: Utc::now().naive_utc(),
         pic_handler: 1,
-        width: width,
-        height: height,
+        width,
+        height,
     };
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO pic (id, created, pic_handler, review_id, width, height) VALUES (?,?,?,?,?,?)",
+        &pic.id,
+        &pic.created,
+        &pic.pic_handler,
+        &pic.review_id,
+        &pic.width,
+        &pic.height,
     )
-    .bind(&pic.id)
-    .bind(&pic.created)
-    .bind(&pic.pic_handler)
-    .bind(&pic.review_id)
-    .bind(&pic.width)
-    .bind(&pic.height)
     .execute(client)
     .await?;
 
@@ -295,9 +312,7 @@ pub async fn update_user_pic_id(
     pic_id: &str,
     user_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE user SET pic_id = ? WHERE id = ?")
-        .bind(pic_id)
-        .bind(user_id)
+    sqlx::query!("UPDATE user SET pic_id = ? WHERE id = ?", pic_id, user_id)
         .execute(client)
         .await?;
 
@@ -307,8 +322,7 @@ pub async fn update_user_pic_id(
 /// Deletes a pic record.
 /// Has no foreign key restrictions or harsh bindings to actual pic storage.
 pub async fn delete_pic(client: &MySqlPool, pic_id: &str) -> Result<(), Error> {
-    sqlx::query("DELETE FROM pic WHERE id = ?")
-        .bind(pic_id)
+    sqlx::query!("DELETE FROM pic WHERE id = ?", pic_id)
         .execute(client)
         .await?;
 
@@ -318,21 +332,21 @@ pub async fn delete_pic(client: &MySqlPool, pic_id: &str) -> Result<(), Error> {
 /// Creates a review from the given `Review`.
 /// Requires all fields to be set on incoming review. Validates nothing explicitly other than column constraints.
 pub async fn create_review(client: &MySqlPool, review: &Review) -> Result<(), Error> {
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO review
         (id, user_id, created,text, stars, location_name, is_custom, category, location)
         VALUES (?,?,?,?,?,?,?,?,Point(?,?))",
+        &review.id,
+        &review.user_id,
+        &review.created,
+        &review.text,
+        &review.stars,
+        &review.location_name,
+        &review.is_custom,
+        &review.category,
+        &review.longitude,
+        &review.latitude
     )
-    .bind(&review.id)
-    .bind(&review.user_id)
-    .bind(&review.created)
-    .bind(&review.text)
-    .bind(&review.stars)
-    .bind(&review.location_name)
-    .bind(&review.is_custom)
-    .bind(&review.category)
-    .bind(&review.longitude)
-    .bind(&review.latitude)
     .execute(client)
     .await?;
 
@@ -345,11 +359,13 @@ pub async fn remove_review_pic_id(
     pic_id: &str,
     review_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query("DELETE FROM pic where id = ? and review_id = ?")
-        .bind(pic_id)
-        .bind(review_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM pic where id = ? and review_id = ?",
+        pic_id,
+        review_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -358,15 +374,15 @@ pub async fn remove_review_pic_id(
 /// ## Sets the `likes.created` to `Utc::now().naive_utc()`
 /// ## Sets the `likes.id` to `Uuid::new_v4().to_string()`
 pub async fn create_like(client: &MySqlPool, user_id: &str, review_id: &str) -> Result<(), Error> {
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO likes
         (id, created, user_id, review_id)
         VALUES (?,?,?,?)",
+        Uuid::new_v4().to_string(),
+        Utc::now().naive_utc(),
+        user_id,
+        review_id
     )
-    .bind(Uuid::new_v4().to_string())
-    .bind(Utc::now().naive_utc())
-    .bind(user_id)
-    .bind(review_id)
     .execute(client)
     .await?;
 
@@ -375,11 +391,13 @@ pub async fn create_like(client: &MySqlPool, user_id: &str, review_id: &str) -> 
 
 /// Removes a like record.
 pub async fn remove_like(client: &MySqlPool, user_id: &str, review_id: &str) -> Result<(), Error> {
-    sqlx::query("DELETE FROM likes where user_id = ? and review_id = ?")
-        .bind(user_id)
-        .bind(review_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM likes where user_id = ? and review_id = ?",
+        user_id,
+        review_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -389,18 +407,15 @@ pub async fn remove_like(client: &MySqlPool, user_id: &str, review_id: &str) -> 
 pub async fn remove_review_and_children(client: &MySqlPool, review_id: &str) -> Result<(), Error> {
     let mut trans = client.begin().await?;
 
-    sqlx::query("DELETE FROM reply WHERE review_id = ?")
-        .bind(review_id)
+    sqlx::query!("DELETE FROM reply WHERE review_id = ?", review_id)
         .execute(&mut trans)
         .await?;
 
-    sqlx::query("DELETE FROM likes WHERE review_id = ?")
-        .bind(review_id)
+    sqlx::query!("DELETE FROM likes WHERE review_id = ?", review_id)
         .execute(&mut trans)
         .await?;
 
-    sqlx::query("DELETE FROM review WHERE id = ?")
-        .bind(review_id)
+    sqlx::query!("DELETE FROM review WHERE id = ?", review_id)
         .execute(&mut trans)
         .await?;
 
@@ -419,17 +434,17 @@ pub async fn create_reply(
     text: &str,
     reply_to_id: Option<&String>,
 ) -> Result<(), Error> {
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO reply
         (id, created, user_id, review_id, text, reply_to_id)
         VALUES (?,?,?,?,?,?)",
+        Uuid::new_v4().to_string(),
+        Utc::now().naive_utc(),
+        user_id,
+        review_id,
+        text,
+        reply_to_id
     )
-    .bind(Uuid::new_v4().to_string())
-    .bind(Utc::now().naive_utc())
-    .bind(user_id)
-    .bind(review_id)
-    .bind(text)
-    .bind(reply_to_id)
     .execute(client)
     .await?;
 
@@ -443,12 +458,14 @@ pub async fn delete_reply(
     review_id: &str,
     user_id: &str,
 ) -> Result<(), Error> {
-    sqlx::query("DELETE FROM reply WHERE id = ? AND review_id = ? and user_id = ?")
-        .bind(reply_id)
-        .bind(review_id)
-        .bind(user_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "DELETE FROM reply WHERE id = ? AND review_id = ? and user_id = ?",
+        reply_id,
+        review_id,
+        user_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -461,12 +478,14 @@ pub async fn update_review(
     stars: u8,
     text: &str,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE review SET stars = ?, text = ? WHERE id = ?")
-        .bind(stars)
-        .bind(text)
-        .bind(review_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "UPDATE review SET stars = ?, text = ? WHERE id = ?",
+        stars,
+        text,
+        review_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -479,12 +498,14 @@ pub async fn update_usernames(
     display_name: &str,
     name: &str,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE user SET display_name = ?, name = ? WHERE id = ?")
-        .bind(display_name)
-        .bind(name)
-        .bind(user_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "UPDATE user SET display_name = ?, name = ? WHERE id = ?",
+        display_name,
+        name,
+        user_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -495,11 +516,13 @@ pub async fn update_device_token(
     user_id: &str,
     device_token: &str,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE user SET device_token = ? WHERE id = ?")
-        .bind(device_token)
-        .bind(user_id)
-        .execute(client)
-        .await?;
+    sqlx::query!(
+        "UPDATE user SET device_token = ? WHERE id = ?",
+        device_token,
+        user_id
+    )
+    .execute(client)
+    .await?;
 
     return Ok(());
 }
@@ -510,9 +533,7 @@ pub async fn update_recovery_email(
     user_id: &str,
     email: &str,
 ) -> Result<(), Error> {
-    sqlx::query("UPDATE user SET email = ? WHERE id = ?")
-        .bind(email)
-        .bind(user_id)
+    sqlx::query!("UPDATE user SET email = ? WHERE id = ?", email, user_id)
         .execute(client)
         .await?;
 
@@ -521,8 +542,7 @@ pub async fn update_recovery_email(
 
 /// Deletes all notifications, which is essentially confirming them.
 pub async fn confirm_notifications(client: &MySqlPool, user_id: &str) -> Result<(), Error> {
-    sqlx::query("DELETE FROM notification WHERE review_user_id = ?")
-        .bind(user_id)
+    sqlx::query!("DELETE FROM notification WHERE review_user_id = ?", user_id)
         .execute(client)
         .await?;
 
@@ -542,35 +562,36 @@ pub async fn create_notification(
         return Ok(());
     }
 
-    let row = sqlx::query(
+    let notifications = sqlx::query_as!(
+        Notification,
         "SELECT *
             FROM  notification AS n
         WHERE n.review_id = ?
             AND n.user_id = ?
             AND n.action_type = ?",
+        review_id,
+        user_id,
+        action_type
     )
-    .bind(review_id)
-    .bind(user_id)
-    .bind(action_type)
     .fetch_all(client)
     .await?;
 
     // If this type from this user on this review already exists, we can just early return.
-    if row.len() == 1 {
+    if notifications.len() == 1 {
         return Ok(());
     }
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO notification
         (id, created, review_user_id, user_id, review_id, action_type)
         VALUES (?,?,?,?,?,?)",
+        Uuid::new_v4().to_string(),
+        Utc::now().naive_utc(),
+        review_user_id,
+        user_id,
+        review_id,
+        action_type
     )
-    .bind(Uuid::new_v4().to_string())
-    .bind(Utc::now().naive_utc())
-    .bind(review_user_id)
-    .bind(user_id)
-    .bind(review_id)
-    .bind(action_type)
     .execute(client)
     .await?;
 
@@ -589,34 +610,35 @@ pub async fn report_user(
         return Ok(());
     }
 
-    let row = sqlx::query(
+    let reports = sqlx::query_as!(
+        Report,
         "SELECT *
             FROM  reports AS n
         WHERE n.user_id = ?
             AND n.reporter_id = ?
             AND n.report_type = ?",
+        user_id,
+        reporter_id,
+        USER_ACTION_TYPE
     )
-    .bind(user_id)
-    .bind(reporter_id)
-    .bind(USER_ACTION_TYPE)
     .fetch_all(client)
     .await?;
 
     // If this report already exists, just ignore this.
-    if row.len() == 1 {
+    if reports.len() == 1 {
         return Ok(());
     }
 
-    sqlx::query(
+    sqlx::query!(
         "INSERT INTO reports
         (id, created, user_id, reporter_id, report_type)
         VALUES (?,?,?,?,?)",
+        Uuid::new_v4().to_string(),
+        Utc::now().naive_utc(),
+        user_id,
+        reporter_id,
+        USER_ACTION_TYPE
     )
-    .bind(Uuid::new_v4().to_string())
-    .bind(Utc::now().naive_utc())
-    .bind(user_id)
-    .bind(reporter_id)
-    .bind(USER_ACTION_TYPE)
     .execute(client)
     .await?;
 
