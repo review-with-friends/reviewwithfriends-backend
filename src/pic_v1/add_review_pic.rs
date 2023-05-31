@@ -2,6 +2,7 @@ use crate::{
     authorization::AuthenticatedUser,
     db::{create_pic, get_all_pics, get_review, remove_review_pic_id, Review},
     pic_v1::TARGET_DO_BUCKET,
+    tracing::add_error_span,
 };
 use actix_web::{
     post,
@@ -58,7 +59,8 @@ pub async fn add_review_pic(
                 return Ok(HttpResponse::NotFound().body("could not find review"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Ok(HttpResponse::InternalServerError().body("failed to get review"));
         }
     }
@@ -75,7 +77,10 @@ pub async fn add_review_pic(
                 return Ok(HttpResponse::BadRequest().body("too many pics already"));
             }
         }
-        Err(_) => return Ok(HttpResponse::BadRequest().body("unable to get pics")),
+        Err(error) => {
+            add_error_span(&error);
+            return Ok(HttpResponse::InternalServerError().body("unable to get pics"));
+        }
     }
 
     let pic_res = create_pic(
@@ -88,7 +93,7 @@ pub async fn add_review_pic(
 
     match pic_res {
         Ok(pic) => {
-            if let Err(_) = s3_client
+            if let Err(error) = s3_client
                 .put_object(PutObjectRequest {
                     body: Some(ByteStream::from(<Vec<u8>>::from(pic_bytes))),
                     bucket: TARGET_DO_BUCKET.to_string(),
@@ -98,6 +103,7 @@ pub async fn add_review_pic(
                 })
                 .await
             {
+                add_error_span(&error);
                 let _ = remove_review_pic_id(&pool, &pic.id, &review.id).await;
 
                 return Ok(HttpResponse::InternalServerError().body("unable to store review pic"));
@@ -105,7 +111,8 @@ pub async fn add_review_pic(
 
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Ok(HttpResponse::InternalServerError().body("unable to create review pic"));
         }
     }

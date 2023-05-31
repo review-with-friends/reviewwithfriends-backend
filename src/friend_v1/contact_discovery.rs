@@ -1,4 +1,7 @@
-use crate::{authorization::AuthenticatedUser, db::phone_number_discovery, user_v1::UserPub};
+use crate::{
+    authorization::AuthenticatedUser, db::phone_number_discovery, tracing::add_error_span,
+    user_v1::UserPub,
+};
 use actix_web::{
     error::ErrorInternalServerError,
     post,
@@ -37,22 +40,26 @@ pub async fn discover_friends(
 
     let discovery_query_res = phone_number_discovery(&pool, &input_numbers).await;
 
-    if let Ok(discovery_results) = discovery_query_res {
-        let mut output: Vec<UserPub> = discovery_results
-            .into_iter()
-            .map(|f| -> UserPub { f.into() })
-            .collect();
+    match discovery_query_res {
+        Ok(discovery_results) => {
+            let mut output: Vec<UserPub> = discovery_results
+                .into_iter()
+                .map(|f| -> UserPub { f.into() })
+                .collect();
 
-        // shuffle the output to minimize any predictability
-        let mut rng = thread_rng();
-        output.shuffle(&mut rng);
+            // shuffle the output to minimize any predictability
+            let mut rng = thread_rng();
+            output.shuffle(&mut rng);
 
-        // take only the first 50 after shuffling
-        // in most cases, people won't have more than this
-        output.truncate(50);
+            // take only the first 50 after shuffling
+            // in most cases, people won't have more than this
+            output.truncate(50);
 
-        return Ok(Json(output));
-    } else {
-        return Err(ErrorInternalServerError("failed to discover friends"));
+            return Ok(Json(output));
+        }
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("failed to discover friends"));
+        }
     }
 }

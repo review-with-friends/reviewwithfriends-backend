@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{delete_reply, get_review},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::ErrorInternalServerError,
@@ -24,7 +25,9 @@ pub async fn remove_reply(
     pool: Data<MySqlPool>,
     add_reply_request: Query<RemoveReplyRequest>,
 ) -> Result<impl Responder> {
-    if let Err(_) = get_review(&pool, &authenticated_user.0, &add_reply_request.review_id).await {
+    if let Err(error) = get_review(&pool, &authenticated_user.0, &add_reply_request.review_id).await
+    {
+        add_error_span(&error);
         return Err(ErrorInternalServerError(
             "unable to find review".to_string(),
         ));
@@ -42,6 +45,9 @@ pub async fn remove_reply(
         Ok(_) => {
             return Ok(HttpResponse::Ok().finish());
         }
-        Err(_) => return Err(ErrorInternalServerError("unable delete reply".to_string())),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable delete reply".to_string()));
+        }
     }
 }

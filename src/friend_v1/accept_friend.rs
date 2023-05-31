@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{accept_friend_request, get_acceptable_friend_requests},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -51,10 +52,11 @@ pub async fn accept_friend(
                 }
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "could not fetch incoming friend requests",
-            ))
+            ));
         }
     }
 }

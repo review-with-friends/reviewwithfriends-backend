@@ -1,6 +1,7 @@
 use crate::{
     authorization::AuthenticatedUser,
     db::{get_current_friends, remove_current_friend},
+    tracing::add_error_span,
 };
 use actix_web::{
     error::{ErrorBadRequest, ErrorInternalServerError},
@@ -48,12 +49,18 @@ pub async fn remove_friend(
 
                 match remove_res {
                     Ok(_) => Ok(HttpResponse::Ok()),
-                    Err(_) => Err(ErrorInternalServerError("failed removing friend")),
+                    Err(error) => {
+                        add_error_span(&error);
+                        Err(ErrorInternalServerError("failed removing friend"))
+                    }
                 }
             } else {
                 return Err(ErrorBadRequest("friend doesnt exist"));
             }
         }
-        Err(_) => return Err(ErrorInternalServerError("could not fetch friends")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("could not fetch friends"));
+        }
     }
 }

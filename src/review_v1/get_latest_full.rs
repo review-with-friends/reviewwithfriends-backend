@@ -1,6 +1,6 @@
 use crate::{
     authorization::AuthenticatedUser, compound_types::CompoundReviewPub, db::get_latest_reviews,
-    review_v1::gather_compound_review,
+    review_v1::gather_compound_review, tracing::add_error_span,
 };
 use actix_web::{
     error::ErrorInternalServerError,
@@ -43,18 +43,20 @@ pub async fn get_latest_full(
 
                 match compound_review_res {
                     Ok(compound_review) => compound_reviews.push(compound_review),
-                    Err(_) => {
+                    Err(error) => {
+                        add_error_span(&error);
                         return Err(ErrorInternalServerError(
                             "failed gathering review contents".to_string(),
-                        ))
+                        ));
                     }
                 }
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "unable to get latest reviews".to_string(),
-            ))
+            ));
         }
     }
 

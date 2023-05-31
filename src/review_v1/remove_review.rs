@@ -2,6 +2,7 @@ use crate::{
     authorization::AuthenticatedUser,
     db::{get_all_pics, get_review, remove_review_and_children, Review},
     pic_v1::shared_utils::best_effort_delete_pic,
+    tracing::add_error_span,
 };
 use actix_web::{
     post,
@@ -41,7 +42,8 @@ pub async fn remove_review(
                 return Ok(HttpResponse::NotFound().body("could not find review"));
             }
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Ok(HttpResponse::InternalServerError().body("failed to get review"));
         }
     }
@@ -50,7 +52,8 @@ pub async fn remove_review(
         return Ok(HttpResponse::Forbidden().body("you did not create this review"));
     }
 
-    if let Err(_) = remove_review_and_children(&pool, &remove_review_request.review_id).await {
+    if let Err(error) = remove_review_and_children(&pool, &remove_review_request.review_id).await {
+        add_error_span(&error);
         return Ok(HttpResponse::InternalServerError().body("unable to delete records"));
     }
 

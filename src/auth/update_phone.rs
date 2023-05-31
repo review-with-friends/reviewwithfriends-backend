@@ -3,6 +3,7 @@ use crate::{
         create_authattempt, get_current_phoneauths, get_phoneauth_attempts, get_user_by_phone,
         update_authattempt_used, update_user_phone, PhoneAuth, User,
     },
+    tracing::add_error_span,
     Config,
 };
 use actix_web::{
@@ -80,7 +81,8 @@ pub async fn update_phone(
     }
 
     let create_authattempt_res = create_authattempt(&pool, &sign_in_request.new_phone).await;
-    if let Err(_) = create_authattempt_res {
+    if let Err(error) = create_authattempt_res {
+        add_error_span(&error);
         return Err(ErrorInternalServerError("unable to start auth attempt"));
     }
 
@@ -164,7 +166,8 @@ pub async fn update_phone(
 
         let authattempt_update_res =
             update_authattempt_used(&pool, &matched_phoneauth.first().unwrap().id).await;
-        if let Err(_) = authattempt_update_res {
+        if let Err(error) = authattempt_update_res {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("unable to update authattempt"));
         }
 

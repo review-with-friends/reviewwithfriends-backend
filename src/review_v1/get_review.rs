@@ -1,4 +1,7 @@
-use crate::{authorization::AuthenticatedUser, db::get_review, review_v1::gather_compound_review};
+use crate::{
+    authorization::AuthenticatedUser, db::get_review, review_v1::gather_compound_review,
+    tracing::add_error_span,
+};
 use actix_web::{
     error::{ErrorInternalServerError, ErrorNotFound},
     get,
@@ -35,7 +38,10 @@ pub async fn get_review_by_id(
                 return Err(ErrorNotFound("unable to find review"));
             }
         }
-        Err(_) => return Err(ErrorInternalServerError("unable to get review")),
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to get review"));
+        }
     }
 
     let compound_review_res = gather_compound_review(&pool, review).await;
@@ -44,10 +50,11 @@ pub async fn get_review_by_id(
         Ok(compound_review) => {
             return Ok(Json(compound_review));
         }
-        Err(_) => {
+        Err(error) => {
+            add_error_span(&error);
             return Err(ErrorInternalServerError(
                 "failed to gather review components",
-            ))
+            ));
         }
     }
 }

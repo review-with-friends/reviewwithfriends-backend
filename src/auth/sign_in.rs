@@ -3,6 +3,7 @@ use crate::{
         create_authattempt, get_current_phoneauths, get_phoneauth_attempts, get_user_by_phone,
         update_authattempt_used, PhoneAuth, User,
     },
+    tracing::add_error_span,
     Config,
 };
 use actix_web::{
@@ -49,22 +50,31 @@ pub async fn sign_in(
     }
 
     let phone_auth_attemps_res = get_phoneauth_attempts(&pool, &sign_in_request.phone).await;
-    if let Ok(phone_auth_attempts) = phone_auth_attemps_res {
-        if phone_auth_attempts.len() >= 4 {
-            return Err(ErrorBadRequest(
-                "too many auth attempts - wait a bit before trying again",
-            ));
+    match phone_auth_attemps_res {
+        Ok(phone_auth_attempts) => {
+            if phone_auth_attempts.len() >= 4 {
+                return Err(ErrorBadRequest(
+                    "too many auth attempts - wait a bit before trying again",
+                ));
+            }
         }
-    } else {
-        return Err(ErrorInternalServerError("unable to get auth attempts"));
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to get auth attempts"));
+        }
     }
 
     let phone_auth_res = get_current_phoneauths(&pool, &sign_in_request.phone).await;
     let phone_auths: Vec<PhoneAuth>;
-    if let Ok(phone_auths_tmp) = phone_auth_res {
-        phone_auths = phone_auths_tmp;
-    } else {
-        return Err(ErrorInternalServerError("unable to get current phoneauths"));
+
+    match phone_auth_res {
+        Ok(phone_auths_tmp) => {
+            phone_auths = phone_auths_tmp;
+        }
+        Err(error) => {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("unable to get current phoneauths"));
+        }
     }
 
     let matched_phoneauth = phone_auths
@@ -75,21 +85,25 @@ pub async fn sign_in(
     if matched_phoneauth.len() == 1 {
         let user: User;
         let user_res = get_user_by_phone(&pool, &sign_in_request.phone).await;
-        if let Ok(user_opt) = user_res {
-            if let Some(user_tmp) = user_opt {
-                user = user_tmp;
-            } else {
-                return Err(ErrorInternalServerError(
-                    "unable to find user for given phone",
-                ));
+
+        match user_res {
+            Ok(user_opt) => {
+                if let Some(user_tmp) = user_opt {
+                    user = user_tmp;
+                } else {
+                    return Err(ErrorInternalServerError("unable to find user"));
+                }
             }
-        } else {
-            return Err(ErrorInternalServerError("error fetching user by phone"));
+            Err(error) => {
+                add_error_span(&error);
+                return Err(ErrorInternalServerError("error fetching user"));
+            }
         }
 
         let authattempt_update_res =
             update_authattempt_used(&pool, &matched_phoneauth.first().unwrap().id).await;
-        if let Err(_) = authattempt_update_res {
+        if let Err(error) = authattempt_update_res {
+            add_error_span(&error);
             return Err(ErrorInternalServerError("unable to update authattempt"));
         }
 
