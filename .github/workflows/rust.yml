@@ -31,7 +31,7 @@ jobs:
           digitalocean_token: ${{ secrets.DOCKER_LOGIN }}
 
       - name: Run sqlx migrations
-        run: sqlx migrate run
+        run: sqlx migrate run --ignore-missing
 
       - name: Build
         run: cargo build --release
