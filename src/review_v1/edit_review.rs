@@ -1,6 +1,6 @@
 use crate::{
     authorization::AuthenticatedUser,
-    db::{get_review, update_review, Review},
+    db::{get_review, update_review, update_review_delivered, Review},
     tracing::add_error_span,
 };
 use actix_web::{
@@ -18,6 +18,7 @@ pub struct EditReviewRequest {
     pub review_id: String,
     pub text: Option<String>,
     pub stars: Option<u8>,
+    pub delivered: Option<bool>,
 }
 
 // Allows owner to edit specific fields in a review.
@@ -71,6 +72,16 @@ pub async fn edit_review(
 
     if let Err(err) = validate_stars(new_stars) {
         return Err(ErrorBadRequest(err));
+    }
+
+    if let Some(delivered) = &edit_review_request.delivered {
+        let update_delivered_res =
+            update_review_delivered(&pool, &edit_review_request.review_id, *delivered as u8).await;
+
+        if let Err(error) = update_delivered_res {
+            add_error_span(&error);
+            return Err(ErrorInternalServerError("failed to edit review"));
+        }
     }
 
     let update_res =

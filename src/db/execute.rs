@@ -490,6 +490,23 @@ pub async fn update_review(
     return Ok(());
 }
 
+/// Updates the delivered status for the review.
+pub async fn update_review_delivered(
+    client: &MySqlPool,
+    review_id: &str,
+    delivered: u8,
+) -> Result<(), Error> {
+    sqlx::query!(
+        "UPDATE review SET delivered = ? WHERE id = ?",
+        delivered,
+        review_id
+    )
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
+
 /// Updates a users names.
 /// Will always try to set the passed values.
 pub async fn update_usernames(
