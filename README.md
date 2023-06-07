@@ -1,3 +1,5 @@
+[![Release](https://github.com/review-with-friends/reviewwithfriends-backend/actions/workflows/rust.yml/badge.svg)](https://github.com/review-with-friends/reviewwithfriends-backend/actions/workflows/rust.yml)
+
 # Core Values
 
 ## 5XX Retry && 4XX Terminal
