@@ -662,3 +662,22 @@ pub async fn report_user(
 
     return Ok(());
 }
+
+/// Update whether a review is recommended or not.
+pub async fn update_review_recommended(
+    client: &MySqlPool,
+    review_id: &str,
+    user_id: &str,
+    recommended: bool,
+) -> Result<(), Error> {
+    sqlx::query!(
+        "UPDATE review SET recommended = ? WHERE id = ? and user_id = ?",
+        recommended,
+        review_id,
+        user_id
+    )
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}

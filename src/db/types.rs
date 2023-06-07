@@ -230,6 +230,8 @@ pub struct Review {
 
     // whether delivery or not
     pub delivered: i8,
+
+    pub recommended: i8,
 }
 
 impl From<&MySqlRow> for Review {
@@ -246,6 +248,7 @@ impl From<&MySqlRow> for Review {
             longitude: row.get("longitude"),
             is_custom: row.get("is_custom"),
             delivered: row.get("delivered"),
+            recommended: row.get("recommended"),
         }
     }
 }

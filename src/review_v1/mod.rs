@@ -19,6 +19,12 @@ pub use get_reviews_from_user::*;
 pub mod get_reviews_from_bounds_exclusions;
 pub use get_reviews_from_bounds_exclusions::*;
 
+pub mod get_recommended_reviews_from_user;
+pub use get_recommended_reviews_from_user::*;
+
+pub mod update_review_recommended;
+pub use update_review_recommended::*;
+
 pub mod get_latest;
 pub use get_latest::*;
 
