@@ -286,7 +286,8 @@ pub async fn get_review(
         ST_X(r1.location) as longitude,
         ST_Y(r1.location) as latitude,
         r1.is_custom,
-        r1.delivered
+        r1.delivered,
+        r1.recommended
         FROM   review AS r1
                INNER JOIN friend AS f1
                        ON f1.friend_id = r1.user_id
@@ -303,7 +304,8 @@ pub async fn get_review(
         ST_X(r2.location) as longitude,
         ST_Y(r2.location) as latitude,
         r2.is_custom,
-        r2.delivered
+        r2.delivered,
+        r2.recommended
         FROM   review AS r2
         WHERE  r2.user_id = ?
                AND r2.id = ? ",
@@ -341,7 +343,8 @@ pub async fn get_reviews_from_location(
         ST_X(r.location) as longitude,
         ST_Y(r.location) as latitude,
         r.is_custom,
-        r.delivered
+        r.delivered,
+        r.recommended
         FROM   review AS r
                INNER JOIN friend AS f
                        ON r.user_id = f.friend_id
@@ -384,12 +387,58 @@ pub async fn get_reviews_from_user(
         ST_X(r.location) as longitude,
         ST_Y(r.location) as latitude,
         r.is_custom,
-        r.delivered
+        r.delivered,
+        r.recommended
         FROM   review AS r
                INNER JOIN friend AS f
                        ON r.user_id = f.friend_id
         WHERE  f.user_id = ?
             AND r.user_id = ?
+        ORDER BY r.created DESC
+        LIMIT  ? offset ? ",
+        user_id,
+        target_user_id,
+        PAGE_SIZE,
+        lower_count
+    )
+    .fetch_all(client)
+    .await?;
+
+    return Ok(reviews);
+}
+
+/// Gets all recommended reviews from a user.
+/// Accounts for the passed user_id's fiends and own reviews.
+pub async fn get_recommended_reviews_from_user(
+    client: &MySqlPool,
+    user_id: &str,
+    target_user_id: &str,
+    page: u32,
+) -> Result<Vec<Review>, Error> {
+    const PAGE_SIZE: u32 = 5;
+
+    let lower_count = page * PAGE_SIZE;
+
+    let reviews = sqlx::query_as!(
+        Review,
+        "SELECT r.id,
+        r.user_id,
+        r.created,
+        r.category,
+        r.text,
+        r.stars,
+        r.location_name,
+        ST_X(r.location) as longitude,
+        ST_Y(r.location) as latitude,
+        r.is_custom,
+        r.delivered,
+        r.recommended
+        FROM   review AS r
+               INNER JOIN friend AS f
+                       ON r.user_id = f.friend_id
+        WHERE  f.user_id = ?
+            AND r.user_id = ?
+            AND r.recommended = true
         ORDER BY r.created DESC
         LIMIT  ? offset ? ",
         user_id,
@@ -541,7 +590,8 @@ pub async fn get_latest_reviews(
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
         r.is_custom,
-        r.delivered
+        r.delivered,
+        r.recommended
  FROM   review AS r
         INNER JOIN friend AS f
                 ON r.user_id = f.friend_id
@@ -583,7 +633,8 @@ pub async fn search_latest_reviews(
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
         r.is_custom,
-        r.delivered
+        r.delivered,
+        r.recommended
  FROM   review AS r
         INNER JOIN friend AS f
                 ON r.user_id = f.friend_id
@@ -633,7 +684,8 @@ pub async fn get_liked_reviews(
             St_x(r.location) AS longitude,
             St_y(r.location) AS latitude,
             r.is_custom,
-            r.delivered
+            r.delivered,
+            r.recommended
             FROM   review as r
         INNER JOIN likes as l on r.id = l.review_id
             WHERE  l.user_id = ?

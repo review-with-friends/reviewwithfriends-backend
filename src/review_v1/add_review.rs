@@ -270,5 +270,6 @@ fn map_review_to_db(request: &AddReviewRequest, user_id: &str) -> Review {
         longitude: request.longitude,
         is_custom: request.is_custom as i8,
         delivered: request.delivered.unwrap_or(false) as i8,
+        recommended: 0,
     }
 }

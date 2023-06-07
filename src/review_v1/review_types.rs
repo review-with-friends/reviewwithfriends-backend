@@ -20,6 +20,7 @@ pub struct ReviewPub {
     pub longitude: f64,
     pub is_custom: bool,
     pub delivered: bool,
+    pub recommended: bool,
 }
 
 impl From<Review> for ReviewPub {
@@ -36,6 +37,7 @@ impl From<Review> for ReviewPub {
             longitude: review.longitude,
             is_custom: false,
             delivered: review.delivered == 1,
+            recommended: review.recommended == 1,
         }
     }
 }
