@@ -284,6 +284,10 @@ pub struct ReviewAnnotation {
 
     // custom locations
     pub is_custom: i8,
+
+    pub delivered: i8,
+
+    pub recommended: i8,
 }
 
 impl From<&MySqlRow> for ReviewAnnotation {
@@ -299,6 +303,8 @@ impl From<&MySqlRow> for ReviewAnnotation {
             latitude: row.get("latitude"),
             longitude: row.get("longitude"),
             is_custom: row.get("is_custom"),
+            delivered: row.get("delivered"),
+            recommended: row.get("recommended"),
         }
     }
 }

@@ -59,6 +59,8 @@ pub struct ReviewAnnotationPub {
     pub latitude: f64,
     pub longitude: f64,
     pub is_custom: bool,
+    pub delivered: bool,
+    pub recommended: bool,
 }
 
 impl From<ReviewAnnotation> for ReviewAnnotationPub {
@@ -79,6 +81,8 @@ impl From<ReviewAnnotation> for ReviewAnnotationPub {
             latitude: review.latitude,
             longitude: review.longitude,
             is_custom: false,
+            delivered: review.delivered == 1,
+            recommended: review.recommended == 1,
         }
     }
 }

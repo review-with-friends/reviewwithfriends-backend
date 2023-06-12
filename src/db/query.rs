@@ -478,7 +478,9 @@ pub async fn get_reviews_from_bounds(
         r.location_name,
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
-        r.is_custom
+        r.is_custom,
+        r.delivered,
+        r.recommended
  FROM   review AS r
         INNER JOIN friend AS f
                 ON r.user_id = f.friend_id
@@ -534,7 +536,9 @@ pub async fn get_reviews_from_bounds_with_exclusions(
         r.location_name,
         St_x(r.location) AS longitude,
         St_y(r.location) AS latitude,
-        r.is_custom
+        r.is_custom,
+        r.delivered,
+        r.recommended
  FROM   review AS r
         INNER JOIN friend AS f
                 ON r.user_id = f.friend_id
