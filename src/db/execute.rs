@@ -374,15 +374,21 @@ pub async fn remove_review_pic_id(
 /// Creates a like record associated with a given review.
 /// ## Sets the `likes.created` to `Utc::now().naive_utc()`
 /// ## Sets the `likes.id` to `Uuid::new_v4().to_string()`
-pub async fn create_like(client: &MySqlPool, user_id: &str, review_id: &str) -> Result<(), Error> {
+pub async fn create_like(
+    client: &MySqlPool,
+    user_id: &str,
+    review_id: &str,
+    like_type: Option<i8>,
+) -> Result<(), Error> {
     sqlx::query!(
         "INSERT INTO likes
-        (id, created, user_id, review_id)
-        VALUES (?,?,?,?)",
+        (id, created, user_id, review_id, like_type)
+        VALUES (?,?,?,?,?)",
         Uuid::new_v4().to_string(),
         Utc::now().naive_utc(),
         user_id,
-        review_id
+        review_id,
+        like_type.unwrap_or(0)
     )
     .execute(client)
     .await?;

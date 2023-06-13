@@ -21,6 +21,7 @@ use sqlx::MySqlPool;
 #[derive(Deserialize)]
 pub struct LikeReviewRequest {
     pub review_id: String,
+    pub like_type: Option<i8>,
 }
 
 /// Allows users to like a review.
@@ -59,8 +60,13 @@ pub async fn like_review(
         }
     }
 
-    let create_res =
-        create_like(&pool, &authenticated_user.0, &like_review_request.review_id).await;
+    let create_res = create_like(
+        &pool,
+        &authenticated_user.0,
+        &like_review_request.review_id,
+        like_review_request.like_type,
+    )
+    .await;
 
     match create_res {
         Ok(_) => {
