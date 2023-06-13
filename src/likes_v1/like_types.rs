@@ -10,6 +10,7 @@ pub struct LikePub {
     pub created: i64,
     pub user_id: String,
     pub review_id: String,
+    pub like_type: i8,
 }
 
 impl From<Like> for LikePub {
@@ -19,6 +20,7 @@ impl From<Like> for LikePub {
             created: like.created.timestamp_millis(),
             user_id: like.user_id,
             review_id: like.review_id,
+            like_type: like.like_type,
         }
     }
 }

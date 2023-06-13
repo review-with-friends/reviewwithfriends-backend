@@ -322,6 +322,9 @@ pub struct Like {
 
     /// Id for the review that was liked.
     pub review_id: String,
+
+    /// The type of like this is.
+    pub like_type: i8,
 }
 
 /// Represents a reply to a post.
