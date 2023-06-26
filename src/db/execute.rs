@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::db::{Notification, Report};
 
-use super::{Friend, Pic, Review, User, USER_ACTION_TYPE};
+use super::{Bookmark, Friend, Pic, Review, User, USER_ACTION_TYPE};
 
 /// Creates a user from the passed User struct.
 /// Sets the pic_id to `DEFAULT_PIC_ID`
@@ -681,6 +681,44 @@ pub async fn update_review_recommended(
         recommended,
         review_id,
         user_id
+    )
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
+
+/// Creates a bookmark from the given `Bookmark`.
+/// Requires all fields to be set on incoming bookmark. Validates nothing explicitly other than column constraints.
+pub async fn create_bookmark(client: &MySqlPool, bookmark: &Bookmark) -> Result<(), Error> {
+    sqlx::query!(
+        "INSERT INTO bookmark
+        (id, user_id, created, location_name, category, location)
+        VALUES (?,?,?,?,?,Point(?,?))",
+        &bookmark.id,
+        &bookmark.user_id,
+        &bookmark.created,
+        &bookmark.location_name,
+        &bookmark.category,
+        &bookmark.longitude,
+        &bookmark.latitude,
+    )
+    .execute(client)
+    .await?;
+
+    return Ok(());
+}
+
+/// Removes a bookmark record.
+pub async fn remove_bookmark(
+    client: &MySqlPool,
+    user_id: &str,
+    bookmark_id: &str,
+) -> Result<(), Error> {
+    sqlx::query!(
+        "DELETE FROM bookmark where user_id = ? and id = ?",
+        user_id,
+        bookmark_id
     )
     .execute(client)
     .await?;

@@ -12,6 +12,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub struct CompoundReviewPub {
     pub review: ReviewPub,
+    pub bookmarked: bool,
     pub likes: Vec<LikePub>,
     pub replies: Vec<ReplyPub>,
     pub pics: Vec<PicPub>,

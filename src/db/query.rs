@@ -2,8 +2,8 @@ use chrono::Duration;
 use sqlx::{types::chrono::Utc, Error, MySqlPool};
 
 use super::{
-    AuthAttempt, ExpandedNotification, Friend, FriendRequest, Like, PhoneAuth, Pic, Reply, Review,
-    ReviewAnnotation, User,
+    AuthAttempt, Bookmark, ExpandedNotification, Friend, FriendRequest, Like, PhoneAuth, Pic,
+    Reply, Review, ReviewAnnotation, User,
 };
 
 /// All query text constants defined in this file should be formatted with the following tool:
@@ -861,4 +861,125 @@ pub async fn get_reply(
     .await?;
 
     return Ok(reply);
+}
+
+/// Gets all bookmarks fromm a friend of this user.
+/// Accounts for the passed user_id's friends and own bookmarks.
+pub async fn get_all_bookmarks(
+    client: &MySqlPool,
+    user_id: &str,
+    target_user_id: &str,
+    page: u32,
+) -> Result<Vec<Bookmark>, Error> {
+    const PAGE_SIZE: u32 = 5;
+
+    let lower_count = page * PAGE_SIZE;
+
+    let bookmarks = sqlx::query_as!(
+        Bookmark,
+        "SELECT bm.id,
+        bm.user_id,
+        bm.created,
+        bm.category,
+        bm.location_name,
+        ST_X(bm.location) as longitude,
+        ST_Y(bm.location) as latitude
+        FROM   bookmark AS bm
+               INNER JOIN friend AS f
+                       ON bm.user_id = f.friend_id
+        WHERE  f.user_id = ?
+            AND bm.user_id = ?
+        ORDER BY bm.created DESC
+        LIMIT  ? offset ? ",
+        user_id,
+        target_user_id,
+        PAGE_SIZE,
+        lower_count
+    )
+    .fetch_all(client)
+    .await?;
+
+    return Ok(bookmarks);
+}
+
+/// Gets the existence of a bookmark by `bookmark.user_id` and `bookmark.id`. True if exists, false if not.
+pub async fn does_bookmark_exist(
+    client: &MySqlPool,
+    user_id: &str,
+    location_name: &str,
+    latitude: f64,
+    longitude: f64,
+) -> Result<bool, Error> {
+    const ACCURACY_SIZE: f64 = 0.001;
+    let bookmarks = sqlx::query_as!(
+        Bookmark,
+        "SELECT r.id,
+        r.user_id,
+        r.created,
+        r.category,
+        r.location_name,
+        ST_X(r.location) as longitude,
+        ST_Y(r.location) as latitude
+        FROM   bookmark AS r
+               INNER JOIN friend AS f
+                       ON r.user_id = f.friend_id
+        WHERE  f.user_id = ?
+               AND r.location_name = ?
+               AND ST_Contains(ST_Buffer(POINT(?, ?), ?), r.location) = 1",
+        user_id,
+        location_name,
+        longitude,
+        latitude,
+        ACCURACY_SIZE
+    )
+    .fetch_all(client)
+    .await?;
+
+    return Ok(bookmarks.len() >= 1);
+}
+
+/// Gets all bookmarks from a nearby radius
+/// Accounts for the passed user_id's fiends and own bookmarks.
+pub async fn get_nearby_bookmarks(
+    client: &MySqlPool,
+    calling_user_id: &str,
+    user_id: &str,
+    page: u32,
+    latitude: f64,
+    longitude: f64,
+) -> Result<Vec<Bookmark>, Error> {
+    const PAGE_SIZE: u32 = 5;
+    let lower_count = page * PAGE_SIZE;
+
+    const ACCURACY_SIZE: f64 = 0.025;
+
+    let reviews = sqlx::query_as!(
+        Bookmark,
+        "SELECT bm.id,
+        bm.user_id,
+        bm.created,
+        bm.category,
+        bm.location_name,
+        ST_X(bm.location) as longitude,
+        ST_Y(bm.location) as latitude
+        FROM   bookmark AS bm
+               INNER JOIN friend AS f
+                       ON bm.user_id = f.friend_id
+        WHERE  f.user_id = ?
+            AND bm.user_id = ?
+               AND ST_Contains(ST_Buffer(POINT(?, ?), ?), bm.location) = 1
+            ORDER BY bm.created DESC
+               LIMIT  ? offset ? ",
+        calling_user_id,
+        user_id,
+        longitude,
+        latitude,
+        ACCURACY_SIZE,
+        PAGE_SIZE,
+        lower_count
+    )
+    .fetch_all(client)
+    .await?;
+
+    return Ok(reviews);
 }

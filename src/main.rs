@@ -12,6 +12,7 @@ use actix_web_opentelemetry::RequestTracing;
 use admin_v1::{get_all_reports, get_user_count};
 use auth::*;
 use authorization::Authentication;
+use bookmark_v1::{add_bookmark, get_all_bookmarks, get_nearby_all_bookmarks, remove_bookmark};
 use chrono::Utc;
 use friend_v1::{
     accept_friend, add_friend, cancel_friend, decline_friend, discover_friends, full_friends,
@@ -60,6 +61,7 @@ use user_v1::{
 mod admin_v1;
 mod auth;
 mod authorization;
+mod bookmark_v1;
 mod compound_types;
 mod db;
 mod friend_v1;
@@ -246,6 +248,13 @@ async fn main() -> std::io::Result<()> {
                             web::scope("/report")
                                 .service(report_user)
                                 .service(report_bug),
+                        )
+                        .service(
+                            web::scope("/bookmark")
+                                .service(get_all_bookmarks)
+                                .service(add_bookmark)
+                                .service(remove_bookmark)
+                                .service(get_nearby_all_bookmarks),
                         ),
                 ),
             )
