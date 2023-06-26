@@ -902,7 +902,7 @@ pub async fn get_all_bookmarks(
     return Ok(bookmarks);
 }
 
-/// Gets the existence of a user by `user.id`. True if exists, false if not.
+/// Gets the existence of a bookmark by `bookmark.user_id` and `bookmark.id`. True if exists, false if not.
 pub async fn does_bookmark_exist(
     client: &MySqlPool,
     user_id: &str,
