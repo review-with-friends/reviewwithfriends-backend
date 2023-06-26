@@ -449,3 +449,26 @@ pub struct Report {
     /// The type of report.
     pub report_type: u8,
 }
+
+pub struct Bookmark {
+    /// Guid unique identifier.
+    pub id: String,
+
+    // user who owns the bookmark.
+    pub user_id: String,
+
+    /// Datetime the bookmark was made.
+    pub created: NaiveDateTime,
+
+    // category of the bookmark.
+    pub category: String,
+
+    // name of the location as per apple maps.
+    pub location_name: String,
+
+    // Latitude of the reviewed location.
+    pub latitude: f64,
+
+    // Longitude of the reviewed location.
+    pub longitude: f64,
+}

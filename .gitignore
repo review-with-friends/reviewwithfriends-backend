@@ -3,3 +3,4 @@
 /kube/auth.yaml
 *.pem
 *.cer
+/.vscode

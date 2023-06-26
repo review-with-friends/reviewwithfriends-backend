@@ -39,12 +39,12 @@ pub async fn get_replies(
     let reply_res = get_all_replies(&pool, &get_replies_request.review_id).await;
 
     match reply_res {
-        Ok(likes) => {
-            let likes_pub: Vec<ReplyPub> = likes
+        Ok(replies) => {
+            let reply_pub: Vec<ReplyPub> = replies
                 .into_iter()
                 .map(|f| -> ReplyPub { f.into() })
                 .collect();
-            return Ok(Json(likes_pub));
+            return Ok(Json(reply_pub));
         }
         Err(_) => return Err(ErrorInternalServerError("unable to get likes".to_string())),
     }
