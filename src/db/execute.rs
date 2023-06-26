@@ -709,16 +709,25 @@ pub async fn create_bookmark(client: &MySqlPool, bookmark: &Bookmark) -> Result<
     return Ok(());
 }
 
-/// Removes a bookmark record.
+/// Gets the existence of a bookmark by `bookmark.user_id` and `bookmark.id`. True if exists, false if not.
 pub async fn remove_bookmark(
     client: &MySqlPool,
     user_id: &str,
-    bookmark_id: &str,
+    location_name: &str,
+    latitude: f64,
+    longitude: f64,
 ) -> Result<(), Error> {
+    const ACCURACY_SIZE: f64 = 0.001;
     sqlx::query!(
-        "DELETE FROM bookmark where user_id = ? and id = ?",
+        "DELETE FROM bookmark as bm
+            WHERE  bm.user_id = ?
+               AND bm.location_name = ?
+               AND ST_Contains(ST_Buffer(POINT(?, ?), ?), bm.location) = 1",
         user_id,
-        bookmark_id
+        location_name,
+        longitude,
+        latitude,
+        ACCURACY_SIZE
     )
     .execute(client)
     .await?;

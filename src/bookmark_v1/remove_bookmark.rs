@@ -10,7 +10,9 @@ use sqlx::MySqlPool;
 
 #[derive(Deserialize)]
 pub struct RemoveBookmarkRequest {
-    pub id: String,
+    pub location_name: String,
+    pub latitude: f64,
+    pub longitude: f64,
 }
 
 /// Gets all the replies for a given review.
@@ -20,8 +22,14 @@ pub async fn remove_bookmark(
     pool: Data<MySqlPool>,
     remove_bookmark_request: Query<RemoveBookmarkRequest>,
 ) -> Result<impl Responder> {
-    let remove_bookmark_res =
-        db::remove_bookmark(&pool, &authenticated_user.0, &remove_bookmark_request.id).await;
+    let remove_bookmark_res = db::remove_bookmark(
+        &pool,
+        &authenticated_user.0,
+        &remove_bookmark_request.location_name,
+        remove_bookmark_request.latitude,
+        remove_bookmark_request.longitude,
+    )
+    .await;
 
     match remove_bookmark_res {
         Ok(_) => {
