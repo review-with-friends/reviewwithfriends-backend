@@ -1,6 +1,6 @@
 use crate::{
     compound_types::CompoundReviewPub,
-    db::{get_all_likes, get_all_pics, get_all_replies},
+    db::{does_bookmark_exist, get_all_likes, get_all_pics, get_all_replies},
     likes_v1::LikePub,
     pic_v1::PicPub,
     reply_v1::ReplyPub,
@@ -28,8 +28,18 @@ pub async fn gather_compound_review(
     let pics = get_all_pics(&pool, &review.id).await?;
     pics_pub = pics.into_iter().map(|f| -> PicPub { f.into() }).collect();
 
+    let is_bookmarked = does_bookmark_exist(
+        &pool,
+        &review.user_id,
+        &review.location_name,
+        review.latitude,
+        review.longitude,
+    )
+    .await?;
+
     return Ok(CompoundReviewPub {
         review,
+        bookmarked: is_bookmarked,
         likes: likes_pub,
         replies: replies_pub,
         pics: pics_pub,
