@@ -39,7 +39,8 @@ pub async fn get_latest_full(
                 .collect();
 
             for review_pub in reviews_pub.into_iter() {
-                let compound_review_res = gather_compound_review(&pool, review_pub).await;
+                let compound_review_res =
+                    gather_compound_review(&pool, &authenticated_user.0, review_pub).await;
 
                 match compound_review_res {
                     Ok(compound_review) => compound_reviews.push(compound_review),

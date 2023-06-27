@@ -44,7 +44,7 @@ pub async fn get_review_by_id(
         }
     }
 
-    let compound_review_res = gather_compound_review(&pool, review).await;
+    let compound_review_res = gather_compound_review(&pool, &authenticated_user.0, review).await;
 
     match compound_review_res {
         Ok(compound_review) => {

@@ -11,6 +11,7 @@ use super::ReviewPub;
 
 pub async fn gather_compound_review(
     pool: &MySqlPool,
+    calling_user_id: &str,
     review: ReviewPub,
 ) -> Result<CompoundReviewPub, Error> {
     let likes_pub: Vec<LikePub>;
@@ -30,7 +31,7 @@ pub async fn gather_compound_review(
 
     let is_bookmarked = does_bookmark_exist(
         &pool,
-        &review.user_id,
+        calling_user_id,
         &review.location_name,
         review.latitude,
         review.longitude,
