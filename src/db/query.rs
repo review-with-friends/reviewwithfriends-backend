@@ -913,9 +913,7 @@ pub async fn does_bookmark_exist(
         ST_X(r.location) as longitude,
         ST_Y(r.location) as latitude
         FROM   bookmark AS r
-               INNER JOIN friend AS f
-                       ON r.user_id = f.friend_id
-        WHERE  f.user_id = ?
+        WHERE  r.user_id = ?
                AND r.location_name = ?
                AND ST_Contains(ST_Buffer(POINT(?, ?), ?), r.location) = 1",
         user_id,
