@@ -13,7 +13,6 @@ use super::bookmark_types::BookmarkPub;
 #[derive(Deserialize)]
 pub struct GetUserBookmarksRequest {
     user_id: String,
-    page: u32,
 }
 
 /// Gets all the replies for a given review.
@@ -27,7 +26,6 @@ pub async fn get_all_bookmarks(
         &pool,
         &authenticated_user.0,
         &get_user_bookmarks_request.user_id,
-        get_user_bookmarks_request.page,
     )
     .await;
 

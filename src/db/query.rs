@@ -869,12 +869,7 @@ pub async fn get_all_bookmarks(
     client: &MySqlPool,
     user_id: &str,
     target_user_id: &str,
-    page: u32,
 ) -> Result<Vec<Bookmark>, Error> {
-    const PAGE_SIZE: u32 = 5;
-
-    let lower_count = page * PAGE_SIZE;
-
     let bookmarks = sqlx::query_as!(
         Bookmark,
         "SELECT bm.id,
@@ -889,12 +884,9 @@ pub async fn get_all_bookmarks(
                        ON bm.user_id = f.friend_id
         WHERE  f.user_id = ?
             AND bm.user_id = ?
-        ORDER BY bm.created DESC
-        LIMIT  ? offset ? ",
+        ORDER BY bm.created DESC",
         user_id,
-        target_user_id,
-        PAGE_SIZE,
-        lower_count
+        target_user_id
     )
     .fetch_all(client)
     .await?;
