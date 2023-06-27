@@ -6,7 +6,7 @@ use crate::{
 use actix_web::{
     error::ErrorInternalServerError,
     post,
-    web::{Data, Json, ReqData},
+    web::{Data, Query, ReqData},
     HttpResponse, Responder, Result,
 };
 use chrono::Utc;
@@ -27,7 +27,7 @@ pub struct AddBookmarkRequest {
 pub async fn add_bookmark(
     authenticated_user: ReqData<AuthenticatedUser>,
     pool: Data<MySqlPool>,
-    add_bookmark_request: Json<AddBookmarkRequest>,
+    add_bookmark_request: Query<AddBookmarkRequest>,
 ) -> Result<impl Responder> {
     let does_bookmark_exist = db::does_bookmark_exist(
         &pool,
