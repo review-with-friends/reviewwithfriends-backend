@@ -85,7 +85,7 @@ struct EmailValidator {
 ///
 /// Tuple return is (metadata.width, metadata.height)
 pub fn validate_profile_pic(bytes: &[u8]) -> Result<(u16, u16), String> {
-    if bytes.len() > 250_000 {
+    if bytes.len() > 500_000 {
         return Err("pic too large".to_string());
     }
 
@@ -95,11 +95,11 @@ pub fn validate_profile_pic(bytes: &[u8]) -> Result<(u16, u16), String> {
     match decode_res {
         Ok(_) => {
             if let Some(metadata) = decoder.info() {
-                if metadata.height > 512 {
+                if metadata.height > 1024 {
                     return Err("image too tall".to_string());
                 }
 
-                if metadata.width > 512 {
+                if metadata.width > 1024 {
                     return Err("image too wide".to_string());
                 }
 
