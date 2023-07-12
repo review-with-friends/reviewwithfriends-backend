@@ -577,37 +577,71 @@ pub async fn get_latest_reviews(
     client: &MySqlPool,
     user_id: &str,
     page: u32,
+    category: &Option<String>,
 ) -> Result<Vec<Review>, Error> {
     const PAGE_SIZE: u32 = 5;
 
     let lower_count = page * PAGE_SIZE;
 
-    let reviews = sqlx::query_as!(
-        Review,
-        "SELECT r.id,
-        r.user_id,
-        r.created,
-        r.category,
-        r.text,
-        r.stars,
-        r.location_name,
-        St_x(r.location) AS longitude,
-        St_y(r.location) AS latitude,
-        r.is_custom,
-        r.delivered,
-        r.recommended
- FROM   review AS r
-        INNER JOIN friend AS f
-                ON r.user_id = f.friend_id
- WHERE  f.user_id = ?
- ORDER  BY r.created DESC
- LIMIT  ? offset ? ",
-        user_id,
-        PAGE_SIZE,
-        lower_count
-    )
-    .fetch_all(client)
-    .await?;
+    let reviews;
+
+    if let Some(category) = category {
+        reviews = sqlx::query_as!(
+            Review,
+            "SELECT r.id,
+            r.user_id,
+            r.created,
+            r.category,
+            r.text,
+            r.stars,
+            r.location_name,
+            St_x(r.location) AS longitude,
+            St_y(r.location) AS latitude,
+            r.is_custom,
+            r.delivered,
+            r.recommended
+     FROM   review AS r
+            INNER JOIN friend AS f
+                    ON r.user_id = f.friend_id
+     WHERE  f.user_id = ?
+     AND r.category = ?
+     ORDER  BY r.created DESC
+     LIMIT  ? offset ? ",
+            user_id,
+            category,
+            PAGE_SIZE,
+            lower_count
+        )
+        .fetch_all(client)
+        .await?;
+    } else {
+        reviews = sqlx::query_as!(
+            Review,
+            "SELECT r.id,
+            r.user_id,
+            r.created,
+            r.category,
+            r.text,
+            r.stars,
+            r.location_name,
+            St_x(r.location) AS longitude,
+            St_y(r.location) AS latitude,
+            r.is_custom,
+            r.delivered,
+            r.recommended
+    FROM   review AS r
+            INNER JOIN friend AS f
+                    ON r.user_id = f.friend_id
+    WHERE  f.user_id = ?
+    ORDER  BY r.created DESC
+    LIMIT  ? offset ? ",
+            user_id,
+            PAGE_SIZE,
+            lower_count
+        )
+        .fetch_all(client)
+        .await?;
+    }
 
     return Ok(reviews);
 }

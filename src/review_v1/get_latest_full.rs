@@ -16,6 +16,7 @@ use super::review_types::ReviewPub;
 #[derive(Deserialize)]
 pub struct ReviewLatestRequest {
     page: u32,
+    category: Option<String>,
 }
 
 /// Gets the latest reviews available to a given requesting user.
@@ -26,8 +27,13 @@ pub async fn get_latest_full(
     pool: Data<MySqlPool>,
     review_latest_request: Query<ReviewLatestRequest>,
 ) -> Result<impl Responder> {
-    let review_res =
-        get_latest_reviews(&pool, &authenticated_user.0, review_latest_request.page).await;
+    let review_res = get_latest_reviews(
+        &pool,
+        &authenticated_user.0,
+        review_latest_request.page,
+        &review_latest_request.category,
+    )
+    .await;
 
     let mut compound_reviews: Vec<CompoundReviewPub> = vec![];
 

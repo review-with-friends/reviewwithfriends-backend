@@ -23,8 +23,13 @@ pub async fn get_latest(
     pool: Data<MySqlPool>,
     review_location_request: Query<ReviewLocationRequest>,
 ) -> Result<impl Responder> {
-    let review_res =
-        get_latest_reviews(&pool, &authenticated_user.0, review_location_request.page).await;
+    let review_res = get_latest_reviews(
+        &pool,
+        &authenticated_user.0,
+        review_location_request.page,
+        &None,
+    )
+    .await;
 
     match review_res {
         Ok(reviews) => {
