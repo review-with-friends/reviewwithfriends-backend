@@ -302,7 +302,8 @@ pub fn validate_longitude(latitude: f64) -> Result<(), String> {
 
 /// ```
 /// assert!(validation::validate_location_name("Test :D").is_ok());
-/// assert!(validation::validate_location_name("💜").is_err());
+/// assert!(validation::validate_location_name("").is_err());
+/// assert!(validation::validate_location_name("💜").is_ok());
 /// assert!(validation::validate_location_name(&"💜".repeat(24)).is_ok());
 /// assert!(validation::validate_location_name(&"💜".repeat(97)).is_err());
 /// ```
@@ -311,8 +312,8 @@ pub fn validate_location_name(text: &str) -> Result<(), String> {
         return Err("location_name too long - max 96 chars".to_string());
     }
 
-    if text.chars().count() < 4 {
-        return Err("location_name too short - min 4 chars".to_string());
+    if text.chars().count() < 1 {
+        return Err("location_name too short - min 1 chars".to_string());
     }
 
     return Ok(());
